@@ -21,12 +21,13 @@ import json
 import requests
 import re
 import urllib.request as urllib2
-from telethon.sessions import StringSession
+#from telethon.sessions import StringSession
 
 
 
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
+bot_token = '1318065263:AAF_brgyVqsq5GKVYczM6WaMrENdG8dJNLs'
 happy_words = ['Cheerful','Contented','Delighted','Ecstatic','Elated','Joyous','Overjoyed','Pleased','Blissful','Chuffed','Delighted','Glad','Gratified','Joyful','Joyous','Pleased','Satisfied','Thankful','Tickled']
 sad_words = ['Hopeless','Depressed','Mournful','Despairing','Miserable','Downcast','Gloomy','Heartbroken','Sorrowful','Glum','Dispirited','Dejected','Defeated','Woeful','Disheartened','Crushed','Crestfallen','Dismayed','Dismal','','Dreary']
 
@@ -39,7 +40,7 @@ commands += 'tlangcodes [get all language codes]\n\n'
 commands += 'ttranslate [translate the terms(i.e. ttranslate [language code][term])]\n\n'
 commands += 'tcommands [get all commands]\n\n'
 
-client = TelegramClient(StringSession('MsTokyoBot'), api_id, api_hash)
+client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
 
 
@@ -47,7 +48,6 @@ async def get_soup(url,header):
     return BeautifulSoup(urllib2.urlopen(urllib2.Request(url,headers=header)),'html.parser')
 
 async def get_meaning(word):
-    print(word)
     return wikipedia.summary(word, sentences = 1, auto_suggest=False, redirect=True)
 
 async def checkFileExists(PATH):
@@ -138,7 +138,6 @@ async def my_event_handler(event):
             query= query.split()
             query='+'.join(query)
             url="https://www.google.com/search?q="+query+"&source=lnms&tbm=isch"
-            print(url)
             header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"
             }
             soup = await get_soup(url,header)
@@ -162,7 +161,6 @@ async def my_event_handler(event):
             cmd = event.raw_text.lower()
             to_lang = cmd.replace('ttranslate ','').split(' ')[0]
             term = cmd.replace('ttranslate ','').replace(to_lang + ' ','')
-            print(term)
             translator= Translator()
             translation = translator.translate(term,dest=to_lang)
             await event.reply(translation.text)
@@ -226,7 +224,6 @@ async def my_event_handler(event):
             search = event.raw_text.lower().replace('twhat ','')
             dictionary = PyDictionary(search)
             info = await get_meaning(search)
-            print(info)
             await event.reply(info)
         except Exception as e:
             if "DisambiguationError" in type(e).__name__:
