@@ -39,7 +39,7 @@ commands += 'tlangcodes [get all language codes]\n\n'
 commands += 'ttranslate [translate the terms(i.e. ttranslate [language code][term])]\n\n'
 commands += 'tcommands [get all commands]\n\n'
 
-client = TelegramClient(StringSession('1BVtsOJMBu2uf-KF77yvP4QDxZGGIUT2t_HQ8SStZyMDeQW8PUVwFlcsFXqNFQ8i3o0POdViwnjS0qCb3EBvNmoUILOSBwQ5f0NOPZPWwvpnoR1aX3tB4cUlJXO4r2o5zg1b8RX5JADppvDKnYA0rUEEEH766sVr-4isY0kfR_yCE-ieYk2HsQUqn1DrPz2omestwaTP8ty2PH-kXPuNr2hc_3TPIvfoLT758_5Z8w7g66a7EHsuEFmsQDGwIpXy1eAXPzXoPCse69Y72usIKWTl2Gt_hVm04BhsbqS7qjY9FIdPDwodA8S7DiRfR-6f6V2BGy9FbXsjvhTkzaOULzIJAgCrfKoc='), api_id, api_hash)
+client = TelegramClient(StringSession('MsTokyoBot'), api_id, api_hash)
 client.start()
 
 
