@@ -1,4 +1,4 @@
-﻿appdirs==1.4.4
+appdirs==1.4.4
 beautifulsoup4==4.9.3
 bs4==0.0.1
 certifi==2020.6.20
@@ -57,6 +57,7 @@ protobuf==3.14.0
 py==1.10.0
 pyaes==1.6.1
 pyasn1==0.4.8
+PyAudio @ file:///C:/Users/Gulshan%20kundnani/pipwin/PyAudio-0.2.11-cp38-cp38-win32.whl
 PyAutoGUI==0.9.52
 pycparser==2.20
 PyDictionary==2.0.1
@@ -66,6 +67,7 @@ pyjsparser==2.7.1
 PyMsgBox==1.0.9
 pyparsing==2.4.7
 pyperclip==1.8.1
+pypiwin32==223
 PyPrind==2.11.2
 PyRect==0.1.4
 PyScreeze==0.1.26
