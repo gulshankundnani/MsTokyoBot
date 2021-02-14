@@ -58,7 +58,6 @@ MarkupSafe==1.1.1
 MeaningCloud-python==2.0.0
 MouseInfo==0.1.3
 nodeenv==1.5.0
-numpy==1.20.1
 oauth2client==4.1.3
 oauthlib==3.1.0
 openpyxl==3.0.6
