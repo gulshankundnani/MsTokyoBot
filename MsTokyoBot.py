@@ -14,6 +14,8 @@ import os
 import sys
 import time
 import random
+import GoogleNews
+from GoogleNews import GoogleNews
 import pyjokes
 import wikipedia
 import googletrans
@@ -21,9 +23,14 @@ import json
 import requests
 import re
 import urllib.request as urllib2
-import sqlite3
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 #from telethon.sessions import StringSession
 
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+creds = ServiceAccountCredentials.from_json_keyfile_name("MsTokyoBot-462b786ad30e.json",scope)
+gclient = gspread.authorize(creds)
+sheet = gclient.open("Reputation").sheet1
 
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
@@ -46,92 +53,54 @@ roast = ['A demitasse would fit his head like a sombrero.','A guy with your IQ s
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
 
+async def getNews(term):
+    if term is not None:
+        googlenews = GoogleNews()
+        googlenews = GoogleNews(lang='en')
+        googlenews.set_encode('utf-8')
+        googlenews.search(term)
+        googlenews.get_page(1)
+        result = googlenews.page_at(1)
+        results = googlenews.results()
+        rs = random.choice(results)
+        return rs
 
-async def createOrCheckTable(dbname):
-    try:
-        conn = sqlite3.connect(dbname)
-        c = conn.cursor()
-        #get the count of tables with the name
-        c.execute(''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='reputationTb' ''')
-        #if the count is 1, then table exists
-        if c.fetchone()[0]==1 :
-            print('Table exists.')
-        else:
-            conn.execute("CREATE TABLE reputationTb (ID INTEGER NOT NULL,NAME TEXT NOT NULL,Rep INTEGER NOT NULL,ChannelId INTEGER NOT NULL,PRIMARY KEY(ID AUTOINCREMENT))")
-            print("Table created successfully")
 
-        #commit the changes to db			
-        conn.commit()
-        #close the connection
-        conn.close()
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-    
+async def findValueFromSheet(username,channelid):
+    allData = sheet.get_all_records()
+    for row in allData:
+        #column index [1-username,2-reputation,3-channelid]
+        key_list = list(allData)
+        row_index = key_list.index(row) + 2
+        col_index = 2
+        if username == row['Username'] and channelid == row['ChannelId']:
+            existing_rep = row['Reputation']
+            row_index = key_list.index(row) + 2
+            col_index = 2
+            data = [row_index,col_index,existing_rep]
+            return data
 
-async def insertOrUpdateOrSelect(username,channelid,opr):
-    try:
-        await createOrCheckTable('mstokyobot.db')
-        conn = sqlite3.connect('mstokyobot.db')
-        cursor = conn.execute("SELECT NAME,Rep,ChannelId from reputationTb where NAME='"+username+"' AND ChannelId='"+str(channelid)+"'")
-        row = cursor.fetchone()
-        if 'getLatestRep' in opr:
-            conn = sqlite3.connect('mstokyobot.db')
-            cursor = conn.execute("SELECT Rep from reputationTb where NAME=? AND ChannelId=?",(username,channelid))
-            rows = cursor.fetchall()
-            for row in rows:
-                rowData = str(row)
-                rowData = rowData.replace("(","")
-                rowData = rowData.replace(")","")
-                rowData = rowData.replace(",","")
-                newRepData= int(rowData) 
-                newrep = newRepData
-                return newrep
+async def updateSheetValue(row_index,col_index,existing_rep,opr):
+    if 'add' in opr:
+        sheet.update_cell(row_index,col_index,existing_rep + 1)
 
-        if row == None:
-            time.sleep(1)
-            conn.execute("INSERT INTO reputationTb (ID,NAME,Rep,ChannelId) VALUES (?,?,?,?)",(None,username,1,channelid))
-            #commit the changes to db			
-            conn.commit()
-        else:
-            if 'add' in opr:
-                cursor = conn.execute("SELECT Rep from reputationTb where NAME=? AND ChannelId=?",(username,channelid))
-                rows = cursor.fetchall()
-                for row in rows:
-                    rowData = str(row)
-                    rowData = rowData.replace("(","")
-                    rowData = rowData.replace(")","")
-                    rowData = rowData.replace(",","")
-                    newRepData= int(rowData) + 1
-                    newrep = newRepData
+    if 'sub' in opr:
+        sheet.update_cell(row_index,col_index,existing_rep - 1)
 
-                csr = conn.cursor()
-                csr.execute('''UPDATE reputationTb SET Rep = ? WHERE ChannelId = ? AND NAME = ?''', (newrep,channelid, username))
-                csr.close()
+async def appendSheetData(username,rep,channelid):
+    data = [username,rep,channelid]
+    sheet.append_row(data,value_input_option='USER_ENTERED')
 
-                #commit the changes to db			
-                conn.commit()
-
-            if 'sub' in opr:
-                cursor = conn.execute("SELECT Rep from reputationTb where NAME=? AND ChannelId=?",(username,channelid))
-                rows = cursor.fetchall()
-                for row in rows:
-                    rowData = str(row)
-                    rowData = rowData.replace("(","")
-                    rowData = rowData.replace(")","")
-                    rowData = rowData.replace(",","")
-                    newRepData= int(rowData) - 1
-                    newrep = newRepData
-
-                csr = conn.cursor()
-                csr.execute('''UPDATE reputationTb SET Rep = ? WHERE ChannelId = ? AND NAME = ?''', (newrep,channelid, username))
-                csr.close()
-
-                #commit the changes to db			
-                conn.commit()
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-    finally:
-        conn.close()
+async def getLatestRepFromSheet(username,channelid):
+    allData = sheet.get_all_records()
+    key_list = list(allData)
+    for row in allData:
+        if username == row['Username'] and channelid == row['ChannelId']:
+            existing_rep = row['Reputation']
+            row_index = key_list.index(row) + 2
+            col_index = 2
+            data = [row_index,col_index,existing_rep]
+            return data
     
 async def get_soup(url,header):
     return BeautifulSoup(urllib2.urlopen(urllib2.Request(url,headers=header)),'html.parser')
@@ -241,9 +210,14 @@ async def my_event_handler(event):
                 if fromUserName == toUserName:
                     await event.reply('You cannot give Karma to yourself !')
                 else:
-                    await insertOrUpdateOrSelect(str(toUserName),channelId,'add')
-                    lat = await insertOrUpdateOrSelect(toUserName,channelId,'getLatestRep')
-                    await event.reply(random.choice(happy_words) + '! ' + '@' + fromUserName + ' increased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(lat))
+                    data = await findValueFromSheet(toUserName,channelId)
+                    if data is None:
+                        await appendSheetData(toUserName,1,channelId)
+                    else:
+                        await updateSheetValue(data[0],data[1],data[2],'add')
+                    latest = await getLatestRepFromSheet(toUserName,channelId)
+                    latestReputation = latest[2]
+                    await event.reply(random.choice(happy_words) + '! ' + '@' + fromUserName + ' increased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(latestReputation))
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             
@@ -264,14 +238,29 @@ async def my_event_handler(event):
                 if fromUserName == toUserName:
                     await event.reply('You cannot give Karma to yourself !')
                 else:
-                    await insertOrUpdateOrSelect(toUserName,channelId,'sub')
-                    lat = await insertOrUpdateOrSelect(toUserName,channelId,'getLatestRep')
-                    await event.reply(random.choice(sad_words) + '! ' + '@' + fromUserName + ' decreased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(lat))    
+                    data = await findValueFromSheet(toUserName,channelId)
+                    if data is None:
+                        await appendSheetData(toUserName,1,channelId)
+                    else:
+                        await updateSheetValue(data[0],data[1],data[2],'sub')
+                    latest = await getLatestRepFromSheet(toUserName,channelId)
+                    latestReputation = latest[2]
+                    await event.reply(random.choice(sad_words) + '! ' + '@' + fromUserName + ' decreased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(latestReputation))    
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
     if 'tjoke' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
         await event.reply(pyjokes.get_joke(category=random.choice(joke_category)))
+
+    if 'tnews' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
+        command = event.raw_text.lower()
+        term = command.replace('tnews ','')
+        result = await getNews(term)
+        if result is not None:
+            str = result['title'] + '\nSource : '+ result['media'] + '\nLink : ' + result['link'] +'\nDesctiption : '+ result['desc']
+            await event.reply(str)
+        else:
+            await event.reply('Search topic was not provided or could not fetch news.')
 
     if 'twhat' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
         try:            
