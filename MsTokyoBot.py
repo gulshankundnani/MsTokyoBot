@@ -97,11 +97,8 @@ async def getLatestRepFromSheet(username,channelid):
     key_list = list(allData)
     for row in allData:
         if username == row['Username'] and channelid == row['ChannelId']:
-            existing_rep = row['Reputation']
-            row_index = key_list.index(row) + 2
-            col_index = 2
-            data = [row_index,col_index,existing_rep]
-            return data
+            existing_rep = row['Reputation']s
+            return existing_rep
     
 async def get_soup(url,header):
     return BeautifulSoup(urllib2.urlopen(urllib2.Request(url,headers=header)),'html.parser')
