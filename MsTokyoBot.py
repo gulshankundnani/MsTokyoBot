@@ -225,6 +225,10 @@ async def my_event_handler(event):
                 toUserName = eventDta[7]
                 if fromUserName == toUserName:
                     await event.reply('You cannot give Karma to yourself !')
+                elif fromUserName is None:
+                    await event.reply('Sorry! You need to set your username to receive reputation points.')
+                elif toUserName is None:
+                    await event.reply('Sorry! The user needs to set their username to receive reputation points.')
                 else:
                     data = await findValueFromSheet(toUserName,channelId)
                     if data is None:
@@ -252,6 +256,10 @@ async def my_event_handler(event):
                 toUserName = eventDta[7]
                 if fromUserName == toUserName:
                     await event.reply('You cannot give Karma to yourself !')
+                elif fromUserName is None:
+                    await event.reply('Sorry! You need to set your username to receive reputation points.')
+                elif toUserName is None:
+                    await event.reply('Sorry! The user needs to set their username to receive reputation points.')
                 else:
                     data = await findValueFromSheet(toUserName,channelId)
                     if data is None:
