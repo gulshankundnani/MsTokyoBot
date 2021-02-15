@@ -214,8 +214,7 @@ async def my_event_handler(event):
                     else:
                         await updateSheetValue(data[0],data[1],data[2],'add')
                     latest = await getLatestRepFromSheet(toUserName,channelId)
-                    latestReputation = latest[2]
-                    await event.reply(random.choice(happy_words) + '! ' + '@' + fromUserName + ' increased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(latestReputation))
+                    await event.reply(random.choice(happy_words) + '! ' + '@' + fromUserName + ' increased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(latest))
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             
@@ -242,8 +241,7 @@ async def my_event_handler(event):
                     else:
                         await updateSheetValue(data[0],data[1],data[2],'sub')
                     latest = await getLatestRepFromSheet(toUserName,channelId)
-                    latestReputation = latest[2]
-                    await event.reply(random.choice(sad_words) + '! ' + '@' + fromUserName + ' decreased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(latestReputation))    
+                    await event.reply(random.choice(sad_words) + '! ' + '@' + fromUserName + ' decreased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(latest))    
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
