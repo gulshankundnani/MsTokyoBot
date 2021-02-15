@@ -55,50 +55,68 @@ client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_toke
 client.start()
 
 async def getNews(term):
-    if term is not None:
-        googlenews = GoogleNews()
-        googlenews = GoogleNews(lang='en')
-        googlenews.set_encode('utf-8')
-        googlenews.search(term)
-        googlenews.get_page(1)
-        result = googlenews.page_at(1)
-        results = googlenews.results()
-        rs = random.choice(results)
-        return rs
+    try:
+        if term is not None:
+            googlenews = GoogleNews()
+            googlenews = GoogleNews(lang='en')
+            googlenews.set_encode('utf-8')
+            googlenews.search(term)
+            googlenews.get_page(1)
+            result = googlenews.page_at(1)
+            results = googlenews.results()
+            rs = random.choice(results)
+            return rs
+    except Exception as e:
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+    
 
 
 async def findValueFromSheet(username,channelid):
-    allData = sheet.get_all_records()
-    for row in allData:
-        #column index [1-username,2-reputation,3-channelid]
-        key_list = list(allData)
-        row_index = key_list.index(row) + 2
-        col_index = 2
-        if username == row['Username'] and channelid == row['ChannelId']:
-            existing_rep = row['Reputation']
+    try:
+        allData = sheet.get_all_records()
+        for row in allData:
+            #column index [1-username,2-reputation,3-channelid]
+            key_list = list(allData)
             row_index = key_list.index(row) + 2
             col_index = 2
-            data = [row_index,col_index,existing_rep]
-            return data
+            if username == row['Username'] and channelid == row['ChannelId']:
+                existing_rep = row['Reputation']
+                row_index = key_list.index(row) + 2
+                col_index = 2
+                data = [row_index,col_index,existing_rep]
+                return data
+    except Exception as e:
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+    
 
 async def updateSheetValue(row_index,col_index,existing_rep,opr):
-    if 'add' in opr:
-        sheet.update_cell(row_index,col_index,existing_rep + 1)
+    try:
+        if 'add' in opr:
+            sheet.update_cell(row_index,col_index,existing_rep + 1)
 
-    if 'sub' in opr:
-        sheet.update_cell(row_index,col_index,existing_rep - 1)
+        if 'sub' in opr:
+            sheet.update_cell(row_index,col_index,existing_rep - 1)
+    except Exception as e:
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+    
 
 async def appendSheetData(username,rep,channelid):
-    data = [username,rep,channelid]
-    sheet.append_row(data,value_input_option='USER_ENTERED')
+    try:
+        data = [username,rep,channelid]
+        sheet.append_row(data,value_input_option='USER_ENTERED')
+    except Exception as e:
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 async def getLatestRepFromSheet(username,channelid):
-    allData = sheet.get_all_records()
-    key_list = list(allData)
-    for row in allData:
-        if username == row['Username'] and channelid == row['ChannelId']:
-            existing_rep = row['Reputation']
-            return existing_rep
+    try:
+        allData = sheet.get_all_records()
+        key_list = list(allData)
+        for row in allData:
+            if username == row['Username'] and channelid == row['ChannelId']:
+                existing_rep = row['Reputation']
+                return existing_rep
+    except Exception as e:
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
     
 async def get_soup(url,header):
     return BeautifulSoup(urllib2.urlopen(urllib2.Request(url,headers=header)),'html.parser')
