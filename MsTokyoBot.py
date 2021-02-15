@@ -231,7 +231,7 @@ async def my_event_handler(event):
                     await event.reply('Sorry! The user needs to set their username to receive reputation points.')
                 else:
                     data = await findValueFromSheet(toUserName,channelId)
-                    if data is None:
+                    if data is None and toUserName is not None:
                         await appendSheetData(toUserName,1,channelId)
                     else:
                         await updateSheetValue(data[0],data[1],data[2],'add')
@@ -262,7 +262,7 @@ async def my_event_handler(event):
                     await event.reply('Sorry! The user needs to set their username to receive reputation points.')
                 else:
                     data = await findValueFromSheet(toUserName,channelId)
-                    if data is None:
+                    if data is None and toUserName is not None:
                         await appendSheetData(toUserName,1,channelId)
                     else:
                         await updateSheetValue(data[0],data[1],data[2],'sub')
