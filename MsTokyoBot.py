@@ -114,7 +114,7 @@ async def getLatestRepFromSheet(username,channelid):
         for row in allData:
             if username == row['Username'] and channelid == row['ChannelId']:
                 existing_rep = row['Reputation']
-                return existing_rep
+                return str(existing_rep)
     except Exception as e:
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
     
@@ -235,8 +235,8 @@ async def my_event_handler(event):
                         await appendSheetData(toUserName,1,channelId)
                     else:
                         await updateSheetValue(data[0],data[1],data[2],'add')
-                    latest = await getLatestRepFromSheet(toUserName,channelId)
-                    await event.reply(random.choice(happy_words) + '! ' + '@' + fromUserName + ' increased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(latest))
+                        lrep = await getLatestRepFromSheet(toUserName,channelId)
+                        await event.reply(random.choice(happy_words) + '! ' + '@' + fromUserName + ' increased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + lrep)
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             
@@ -266,8 +266,8 @@ async def my_event_handler(event):
                         await appendSheetData(toUserName,1,channelId)
                     else:
                         await updateSheetValue(data[0],data[1],data[2],'sub')
-                    latest = await getLatestRepFromSheet(toUserName,channelId)
-                    await event.reply(random.choice(sad_words) + '! ' + '@' + fromUserName + ' decreased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + str(latest))    
+                        lrep = await getLatestRepFromSheet(toUserName,channelId)
+                        await event.reply(random.choice(sad_words) + '! ' + '@' + fromUserName + ' decreased reputation of @' + toUserName + ' by 1 point. Total Reputation : ' + lrep)    
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
