@@ -16,7 +16,7 @@ import time
 import random
 import GoogleNews
 from GoogleNews import GoogleNews
-import pyjokes
+from dadjokes import Dadjoke
 import wikipedia
 import googletrans
 import json
@@ -26,6 +26,8 @@ import urllib.request as urllib2
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 #from telethon.sessions import StringSession
+
+dadjoke = Dadjoke()
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 creds = ServiceAccountCredentials.from_json_keyfile_name("MsTokyoBot-462b786ad30e.json",scope)
@@ -53,6 +55,22 @@ roast = ['A demitasse would fit his head like a sombrero.','A guy with your IQ s
 
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
+
+async def getAllRep(channelid):
+    try:
+        allData = sheet.get_all_records()
+        sorted_data = sorted(allData, key = lambda i: i['Reputation'],reverse=True)
+        newData = []
+        strData = ""
+        for data in sorted_data:
+            if data['ChannelId'] == channelid:
+                newData.append(data)        
+        if newData is not None:
+            for data in newData:
+                strData = strData + "@" + data["Username"] + " (" + str(data["Reputation"]) + ")\n"
+        return strData
+    except Exception as e:
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 async def getNews(term):
     try:
@@ -132,12 +150,17 @@ async def eventData(event):
             fromUserId = event.from_id
             fromUserEntity = await client.get_entity(fromUserId)
             fromUserName = fromUserEntity.username
+            fromUserFirstName = fromUserEntity.first_name
+            fromUserLastName = fromUserEntity.last_name
             channelId = event.message.to_id.channel_id
             channelEntity = await client.get_entity(channelId)
             msgSearch = await client.get_messages(channelId, ids=replytomsgid)
             toUserEntity = await client.get_entity(msgSearch.from_id)
+            toUserId = toUserEntity.id
             toUserName = toUserEntity.username
-            eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName]
+            toUserFirstName = toUserEntity.first_name
+            toUserLastName = toUserEntity.last_name
+            eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName,fromUserFirstName,fromUserLastName,toUserFirstName,toUserLastName,toUserId]
             return eventDataList
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -147,6 +170,16 @@ async def eventData(event):
 
 @client.on(events.NewMessage)
 async def my_event_handler(event):
+
+    if 'trep' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower() and len(event.raw_text) == 4:
+        try:
+            channelId = event.message.to_id.channel_id
+            data = await getAllRep(channelId)
+            if data is not None:
+                await event.reply(data)
+        except Exception as e:
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
     if 'troast' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
         try:
             mention = event.message.message
@@ -193,7 +226,7 @@ async def my_event_handler(event):
         try:
             cmd = event.raw_text.lower()
             to_lang = cmd.replace('ttranslate ','').split(' ')[0]
-            if to_lang is not None and 'ttranslate' not in to_lang and to_lang in googletrans.LANGCODES:
+            if to_lang is not None and 'ttranslate' not in to_lang and to_lang in googletrans.LANGCODES.values():
                 term = cmd.replace('ttranslate ','').replace(to_lang + ' ','')
                 if term is not None:
                     translator= Translator()
@@ -209,7 +242,7 @@ async def my_event_handler(event):
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
     
-    if '++' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
+    if '++' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower()  and len(event.raw_text) == 2:
         try:
             eventDta = await eventData(event)
             if eventDta is None:
@@ -223,6 +256,11 @@ async def my_event_handler(event):
                 msgSearch = eventDta[5]
                 toUserEntity = eventDta[6]
                 toUserName = eventDta[7]
+                fromUserFirstName = eventDta[8]
+                fromUserLastName = eventDta[9]
+                toUserFirstName = eventDta[10]
+                toUserLastName = eventDta[11]
+                toUserId = eventDta[12]
                 if fromUserName == toUserName:
                     await event.reply('You cannot give Karma to yourself !')
                 elif fromUserName is None:
@@ -240,7 +278,7 @@ async def my_event_handler(event):
         except Exception as e:
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             
-    if '--' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
+    if '--' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower() and len(event.raw_text) == 2:
         try:
             eventDta = await eventData(event)
             if eventDta is None:
@@ -254,6 +292,11 @@ async def my_event_handler(event):
                 msgSearch = eventDta[5]
                 toUserEntity = eventDta[6]
                 toUserName = eventDta[7]
+                fromUserFirstName = eventDta[8]
+                fromUserLastName = eventDta[9]
+                toUserFirstName = eventDta[10]
+                toUserLastName = eventDta[11]
+                toUserId = eventDta[12]
                 if fromUserName == toUserName:
                     await event.reply('You cannot give Karma to yourself !')
                 elif fromUserName is None:
@@ -272,7 +315,10 @@ async def my_event_handler(event):
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
     if 'tjoke' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        await event.reply(pyjokes.get_joke(category=random.choice(joke_category)))
+        try:
+            await event.reply(dadjoke.joke)
+        except Exception as e:
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
     if 'tnews' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
         command = event.raw_text.lower()
