@@ -1,5 +1,7 @@
 FROM python:3
-WORKDIR /usr/src/app
+WORKDIR /app
 COPY . .
-CMD ["MsTokyoBot.py"]
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+CMD ["python","MsTokyoBot.py"]
 ENTRYPOINT ["python3"]
