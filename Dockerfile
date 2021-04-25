@@ -1,1 +1,5 @@
-docker run -it --rm --name single-python-script -v "$PWD":/app -w /app python:3 python MsTokyoBot.py
+FROM python:3
+WORKDIR /usr/src/app
+COPY . .
+CMD ["MsTokyoBot.py"]
+ENTRYPOINT ["python3"]
