@@ -1,13 +1,7 @@
-FROM python:3.6
+FROM python:3
 
-# Create app directory
-WORKDIR /app
-
-# Install app dependencies
-COPY src/requirements.txt ./
+ADD MsTokyoBot.py /
 
 RUN pip install -r requirements.txt
 
-# Bundle app source
-COPY src /app
-CMD [ "python", "MsTokyoBot.py" ]
+CMD [ "python", "./MsTokyoBot.py" ]
