@@ -5,8 +5,8 @@ FROM python:3.8
 WORKDIR /usr/src/app
 
 # copy the dependencies file to the working directory
-COPY requirements.txt .
-COPY MsTokyoBot.py .
+ADD requirements.txt .
+ADD MsTokyoBot.py .
 
 # install dependencies
 RUN pip install -r requirements.txt
