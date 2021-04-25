@@ -3,11 +3,10 @@ application:
   name: "mstokyobot"
   project: "MsTokyo"
   organization: "QoveryCommunity"
-  storage:
-  - name: "MsTokyo"
-    size: "2000"
-    type: "hdd"
-    mount_point: "/mnt/MsTokyo"
+databases:
+- type: "POSTGRESQL"
+  name: "MsTokyoBot"
+  version: "11"
 routers:
 - name: "main-mstokyobot"
   routes:
