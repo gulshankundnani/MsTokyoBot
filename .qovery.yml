@@ -14,9 +14,6 @@ databases:
   version: "11"
 routers:
 - name: "main-mstokyobot"
-  - custom_domains:
-    - branch: master
-      domain: https://main-mstokyo-ubk2060wjp4twbkh-gtw.qovery.io/
   routes:
   - application_name: "mstokyobot"
     paths:
