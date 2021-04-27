@@ -133,7 +133,6 @@ luckydonald-utils
 ndg-httpsclient
 prismic
 pyOpenSSL
-pypiwin32
 pyTelegramBotAPI
 pytgbot
 python-magic
