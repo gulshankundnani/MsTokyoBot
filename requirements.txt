@@ -79,7 +79,6 @@ pyasn1-modules
 PyAutoGUI
 pycparser
 PyDictionary
-PyGetWindow
 pygsheets
 pyjsparser
 PyMsgBox
@@ -117,7 +116,6 @@ tzlocal
 uritemplate
 urllib3
 virtualenv
-webdriverdownloader
 Werkzeug
 wheel
 wikipedia
