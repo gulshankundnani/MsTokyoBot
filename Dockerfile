@@ -12,7 +12,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 #install dependencies
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt --upgrade
 
 # copy code itself from context to image
 COPY . .
