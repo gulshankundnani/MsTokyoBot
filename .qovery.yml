@@ -4,13 +4,13 @@ application:
   project: "MsTokyo"
   organization: "QoveryCommunity"
   storage:
-  - name: "MsTokyo"
-    size: "2000"
+  - name: "mstokyo"
+    size: "500"
     type: "hdd"
-    mount_point: "/mnt/MsTokyo"
+    mount_point: "/mnt/mstokyo"
 databases:
 - type: "POSTGRESQL"
-  name: "MsTokyo"
+  name: "mstokyodb"
   version: "11"
 routers:
 - name: "main-mstokyobot"
