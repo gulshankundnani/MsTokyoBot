@@ -11,7 +11,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 #install dependencies
-RUN pip install --ignore-installed -r requirements.txt
+RUN pip install -r requirements.txt
 
 # copy code itself from context to image
 COPY . .
