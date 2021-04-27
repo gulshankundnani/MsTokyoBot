@@ -1,7 +1,5 @@
-FROM python:latest
-
-WORKDIR /usr/local/bin
-
-COPY MsTokyoBot.py .
-
-CMD ["MsTokyoBot.py"]
+FROM python:alpine3.7
+COPY . /app
+WORKDIR /app
+RUN pip install -r requirements.txt
+CMD python ./MsTokyoBot.py
