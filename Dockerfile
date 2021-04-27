@@ -3,7 +3,6 @@ FROM python
 
 # run this before copying requirements for cache efficiency
 RUN pip install --upgrade pip
-RUN pip install pip-upgrader
 #set work directory early so remaining paths can be relative
 WORKDIR /app
 
@@ -12,8 +11,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 #install dependencies
-RUN pip-upgrade requirements.txt
-RUN pip install -r requirements.txt
+RUN pip install --ignore-installed -r requirements.txt
 
 # copy code itself from context to image
 COPY . .
