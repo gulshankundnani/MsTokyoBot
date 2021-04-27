@@ -134,5 +134,3 @@ pyOpenSSL
 pyTelegramBotAPI
 pytgbot
 python-magic
-pywin32
-teleflask
