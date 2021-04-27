@@ -1,4 +1,4 @@
-FROM python3
+FROM python
 RUN apt-get install -qy python3
 RUN apt-get install -qy python3-pip
 ADD requirements.txt /
