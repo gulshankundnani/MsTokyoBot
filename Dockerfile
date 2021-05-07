@@ -1,6 +1,6 @@
-# docker up --force-recreate
-#docker system prune
-#docker build --nocache
+docker up --force-recreate
+docker system prune
+docker build --nocache
 
 FROM python
 
