@@ -43,7 +43,7 @@ from PIL import Image
 from io import BytesIO
 import io
 import base64
-#import aiml
+import aiml
 #import asyncio
 
 con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
@@ -100,13 +100,13 @@ cmds += ".cmd : Get list of commands \n"
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
 
-#kernel = aiml.Kernel()
+kernel = aiml.Kernel()
 
-#if os.path.isfile("bot_brain.brn"):
-#	kernel.bootstrap(brainFile = "bot_brain.brn")
-#else:
-#	kernel.bootstrap(learnFiles = os.path.abspath("aiml/std-startup.xml"), commands = "load aiml b")
-#	kernel.saveBrain("bot_brain.brn")
+if os.path.isfile("bot_brain.brn"):
+	kernel.bootstrap(brainFile = "bot_brain.brn")
+else:
+	kernel.bootstrap(learnFiles = os.path.abspath("aiml/std-startup.xml"), commands = "load aiml b")
+	kernel.saveBrain("bot_brain.brn")
 
 settings = []
 
@@ -453,13 +453,108 @@ async def my_event_handler(event):
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                     await deleteCommandMessage(channelId,event.message.id)
 
-#        if toUserId == myID:
-#            bot_response = kernel.respond(event.raw_text.lower())
-#            await event.reply(bot_response)
+        if toUserId is not None and toUserId == myID:
+            bot_response = kernel.respond(event.raw_text.lower())
+            await event.reply(bot_response)
+
+        if event.raw_text.lower() == ".langcodes":
+            await langcodes(event)
+
+        if event.raw_text.lower() == "++":
+            await increaseRep(event)
+
+        if event.raw_text.lower() == "--":
+            await decreaseRep(event)
+
+        if event.raw_text.lower().startswith('.news'):
+            await getNewsData(event)
+
+        if event.raw_text.lower().startswith('.what'):
+            await getMeaning(event)
+
+        if event.raw_text.lower() == '.cmd':
+            await getCommands(event)
+
+        if event.raw_text.lower() == '.m':
+            await mute(event)
+
+        if event.raw_text.lower() == '.um':
+            await unmute(event)
+
+        if event.raw_text.lower() == '.b':
+            await ban(event)
+
+        if event.raw_text.lower() == '.ub':
+            await unban(event)
+
+        if event.raw_text.lower() == '.stat':
+            await getUserStat(event)
+
+        if event.raw_text.lower() == '.joke':
+            await getJoke(event)
+
+        if event.raw_text.lower() == '.yomama':
+            await getYomama(event)
+
+        if event.raw_text.lower() == '.loc':
+            await getLocation(event)
+
+        if event.raw_text.lower() == '.quote':
+            await getQuote(event)
+
+        if event.raw_text.lower() == '.bored':
+            await getActivity(event)
+
+        if event.raw_text.lower() == '.insult':
+            await getInsulted(event)
+
+        if event.raw_text.lower() == '.advice':
+            await getAdvice(event)
+
+        if event.raw_text.lower() == '.dadjoke':
+            await getDadJoke(event)
+
+        if event.raw_text.lower() == '.ping':
+            await getPing(event)
+
+        if event.raw_text.lower() == '.startbot':
+            await startBot(event)
+
+        if event.raw_text.lower().startswith('.reputation'):
+            await updateReputationSettings(event)
+
+        if event.raw_text.lower().startswith('.profanity'):
+            await updateProfanitySettings(event)
+
+        if event.raw_text.lower().startswith('.welcome'):
+            await updateWelcomeSettings(event)
+
+        if event.raw_text.lower().startswith('.left'):
+            await updateLeftSettings(event)
+
+        if event.raw_text.lower().startswith('.welcometext'):
+            await updateWelcomeText(event)
+
+        if event.raw_text.lower().startswith('.lefttext'):
+            await updateLeftText(event)
+
+        if event.raw_text.lower().startswith('.profaneadd'):
+            await addProfaneWord(event)
+
+        if event.raw_text.lower() == '.art':
+            await getArt(event)
+
+        if event.raw_text.lower() == '.trv':
+            await getTrv(event)
+
+        if event.raw_text.lower() == '.toprep':
+            await toprep(event)
+
+        if event.raw_text.lower() == '.clean':
+            await clean(event)
     
     except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        pass
 
 @client.on(events.ChatAction)
 async def chat_action_handler(event):
@@ -507,9 +602,9 @@ async def chat_action_handler(event):
                 welcomeText = leftText.replace("{username}",str(userEntity.username))
             await event.reply(leftText)
     except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        pass
 
-@client.on(events.NewMessage(pattern=r'^\.langcodes$'))
+#@client.on(events.NewMessage(pattern=r'^\.langcodes$'))
 async def langcodes(event):
     try:
         con = await getDbCon()
@@ -529,11 +624,10 @@ async def langcodes(event):
         res = '\n'.join('{!r}: {!r},'.format(k, v) for k, v in s.items())
         await event.reply(res.rstrip(','))
     except Exception as e:
-        await event.reply("Something went wrong!")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\++$'))
+#@client.on(events.NewMessage(pattern=r'^\++$'))
 async def increaseRep(event):
     replytomsgid = event.message.reply_to_msg_id
     if replytomsgid is not None:
@@ -580,7 +674,7 @@ async def increaseRep(event):
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\--$'))
+#@client.on(events.NewMessage(pattern=r'^\--$'))
 async def decreaseRep(event):
     replytomsgid = event.message.reply_to_msg_id
     if replytomsgid is not None:
@@ -629,7 +723,7 @@ async def decreaseRep(event):
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.news [a-zA-Z]'))
+#@client.on(events.NewMessage(pattern=r'^\.news [a-zA-Z]'))
 async def getNewsData(event):
     try:
         con = await getDbCon()
@@ -656,7 +750,7 @@ async def getNewsData(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.what$'))
+#@client.on(events.NewMessage(pattern=r'^\.what$'))
 async def getMeaning(event):
     try:
         con = await getDbCon()
@@ -687,7 +781,7 @@ async def getMeaning(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.cmd$'))
+#@client.on(events.NewMessage(pattern=r'^\.cmd$'))
 async def getCommands(event):
     try:
         con = await getDbCon()
@@ -708,7 +802,7 @@ async def getCommands(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.m$'))
+#@client.on(events.NewMessage(pattern=r'^\.m$'))
 async def mute(event):
     try:
         con = await getDbCon()
@@ -741,7 +835,7 @@ async def mute(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.um$'))
+#@client.on(events.NewMessage(pattern=r'^\.um$'))
 async def unmute(event):
     try:
         con = await getDbCon()
@@ -774,7 +868,7 @@ async def unmute(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.b$'))
+#@client.on(events.NewMessage(pattern=r'^\.b$'))
 async def ban(event):
     try:
         con = await getDbCon()
@@ -807,7 +901,7 @@ async def ban(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.ub$'))
+#@client.on(events.NewMessage(pattern=r'^\.ub$'))
 async def unban(event):
     try:
         con = await getDbCon()
@@ -840,7 +934,7 @@ async def unban(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
     
-@client.on(events.NewMessage(pattern=r'^\.stat$'))
+#@client.on(events.NewMessage(pattern=r'^\.stat$'))
 async def getUserStat(event):
     try:
         con = await getDbCon()
@@ -864,7 +958,7 @@ async def getUserStat(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.joke$'))
+#@client.on(events.NewMessage(pattern=r'^\.joke$'))
 async def getJoke(event):
     try:
         con = await getDbCon()
@@ -890,7 +984,7 @@ async def getJoke(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.yomama$'))
+#@client.on(events.NewMessage(pattern=r'^\.yomama$'))
 async def getYomama(event):
     try:
         con = await getDbCon()
@@ -914,7 +1008,7 @@ async def getYomama(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.loc$'))
+#@client.on(events.NewMessage(pattern=r'^\.loc$'))
 async def getLocation(event):
     try:
         con = await getDbCon()
@@ -939,7 +1033,7 @@ async def getLocation(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.quote$'))
+#@client.on(events.NewMessage(pattern=r'^\.quote$'))
 async def getQuote(event):
     try:
         con = await getDbCon()
@@ -964,7 +1058,7 @@ async def getQuote(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.bored$'))
+#@client.on(events.NewMessage(pattern=r'^\.bored$'))
 async def getActivity(event):
     try:
         con = await getDbCon()
@@ -989,7 +1083,7 @@ async def getActivity(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.insult$'))
+#@client.on(events.NewMessage(pattern=r'^\.insult$'))
 async def getInsulted(event):
     try:
         con = await getDbCon()
@@ -1014,7 +1108,7 @@ async def getInsulted(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.advice$'))
+#@client.on(events.NewMessage(pattern=r'^\.advice$'))
 async def getAdvice(event):
     try:
         con = await getDbCon()
@@ -1039,7 +1133,7 @@ async def getAdvice(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.dadjoke$'))
+#@client.on(events.NewMessage(pattern=r'^\.dadjoke$'))
 async def getDadJoke(event):
     try:
         con = await getDbCon()
@@ -1064,7 +1158,7 @@ async def getDadJoke(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.ping$'))
+#@client.on(events.NewMessage(pattern=r'^\.ping$'))
 async def getPing(event):
     try:
         con = await getDbCon()
@@ -1080,14 +1174,14 @@ async def getPing(event):
         count = count[0] + 1
         await updateMessageCount(channelId,fromUserId,count)
         m = await event.respond('!pong')
-        time.sleep(10)
+        time.sleep(3)
         await client.delete_messages(event.chat_id, [event.id, m.id])
     except Exception as e:
         await event.reply("Something went wrong!")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.startbot$'))
+#@client.on(events.NewMessage(pattern=r'^\.startbot$'))
 async def startBot(event):
     try:
         con = await getDbCon()
@@ -1111,7 +1205,7 @@ async def startBot(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.reputation (?i)(true|false)$'))
+#@client.on(events.NewMessage(pattern=r'^\.reputation (?i)(true|false)$'))
 async def updateReputationSettings(event):
     try:
         con = await getDbCon()
@@ -1151,7 +1245,7 @@ async def updateReputationSettings(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.profanity (?i)(true|false)$'))
+#@client.on(events.NewMessage(pattern=r'^\.profanity (?i)(true|false)$'))
 async def updateProfanitySettings(event):
     try:
         con = await getDbCon()
@@ -1191,7 +1285,7 @@ async def updateProfanitySettings(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.welcome (?i)(true|false)$'))
+#@client.on(events.NewMessage(pattern=r'^\.welcome (?i)(true|false)$'))
 async def updateWelcomeSettings(event):
     try:
         con = await getDbCon()
@@ -1231,7 +1325,7 @@ async def updateWelcomeSettings(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.left (?i)(true|false)$'))
+#@client.on(events.NewMessage(pattern=r'^\.left (?i)(true|false)$'))
 async def updateLeftSettings(event):
     try:
         con = await getDbCon()
@@ -1271,7 +1365,7 @@ async def updateLeftSettings(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.welcometext [a-zA-Z]$'))
+#@client.on(events.NewMessage(pattern=r'^\.welcometext [a-zA-Z]$'))
 async def updateWelcomeText(event):
     try:
         con = await getDbCon()
@@ -1300,7 +1394,7 @@ async def updateWelcomeText(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.lefttext [a-zA-Z]$'))
+#@client.on(events.NewMessage(pattern=r'^\.lefttext [a-zA-Z]$'))
 async def updateLeftText(event):
     try:
         con = await getDbCon()
@@ -1329,7 +1423,7 @@ async def updateLeftText(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.profaneadd [a-zA-Z]$'))
+#@client.on(events.NewMessage(pattern=r'^\.profaneadd [a-zA-Z]$'))
 async def addProfaneWord(event):
     try:
         con = await getDbCon()
@@ -1356,7 +1450,7 @@ async def addProfaneWord(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.art$'))
+#@client.on(events.NewMessage(pattern=r'^\.art$'))
 async def getArt(event):
     try:
         con = await getDbCon()
@@ -1393,8 +1487,8 @@ async def getArt(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.trv$'))
-async def getArt(event):
+#@client.on(events.NewMessage(pattern=r'^\.trv$'))
+async def getTrv(event):
     try:
         con = await getDbCon()
         while con is None:
@@ -1432,7 +1526,7 @@ async def getArt(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.toprep$'))
+#@client.on(events.NewMessage(pattern=r'^\.toprep$'))
 async def topRep(event):
     try:
         con = await getDbCon()
@@ -1457,7 +1551,7 @@ async def topRep(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-@client.on(events.NewMessage(pattern=r'^\.clean$'))
+#@client.on(events.NewMessage(pattern=r'^\.clean$'))
 async def clean(event):
     try:
         con = await getDbCon()
