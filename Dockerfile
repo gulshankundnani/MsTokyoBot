@@ -1,4 +1,4 @@
-docker restart mstokyobot
+# docker build --nocache
 
 FROM python
 
