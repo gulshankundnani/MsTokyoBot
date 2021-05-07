@@ -504,7 +504,7 @@ async def chat_action_handler(event):
                 welcomeText = leftText.replace("{username}",str(userEntity.username))
             await event.reply(leftText)
     except Exception as e:
-        pass
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.langcodes$'))
 async def langcodes(event):
