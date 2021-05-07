@@ -1,4 +1,5 @@
-RUN docker up -d --build
+RUN apt-get update
+RUN docker build .
 
 FROM python
 
