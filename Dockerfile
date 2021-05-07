@@ -1,4 +1,4 @@
-RUN docker build --no-cache
+docker restart mstokyobot
 
 FROM python
 
