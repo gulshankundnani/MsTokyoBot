@@ -1,5 +1,4 @@
-RUN apt-get update
-RUN docker build .
+RUN docker build --no-cache
 
 FROM python
 
