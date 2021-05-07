@@ -1,4 +1,4 @@
-RUN docker build --nocache
+docker build --nocache
 
 FROM python
 
