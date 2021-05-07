@@ -3,7 +3,7 @@ FROM python
 
 RUN apt-get update \
     && apt-get install -y git
-RUN git clone https://github.com/gulshankundnani/gulshankundnani.git
+RUN git clone https://gulshankundnani:github.com/gulshankundnani/gulshankundnani.git
 # run this before copying requirements for cache efficiency
 RUN pip install --upgrade pip
 #set work directory early so remaining paths can be relative
