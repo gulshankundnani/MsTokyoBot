@@ -1,4 +1,4 @@
-docker build --nocache
+RUN apt-get update
 
 FROM python
 
