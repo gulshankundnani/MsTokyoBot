@@ -8,6 +8,7 @@ WORKDIR /app
 # Adding requirements file to current directory
 # just this file first to cache the pip install step when code changes
 COPY requirements.txt .
+COPY MsTokyoBot.py .
 
 #install dependencies
 RUN pip install -r requirements.txt
