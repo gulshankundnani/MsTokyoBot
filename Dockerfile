@@ -1,4 +1,4 @@
-RUN apt-get update && apt-get upgrade -y
+docker up --force-recreate
 
 FROM python
 
