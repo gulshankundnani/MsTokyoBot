@@ -1,7 +1,3 @@
-docker up --force-recreate
-docker system prune
-docker build --nocache
-
 FROM python
 
 # run this before copying requirements for cache efficiency
