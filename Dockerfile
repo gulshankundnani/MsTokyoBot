@@ -18,7 +18,7 @@ RUN pip install -r requirements.txt
 # copy code itself from context to image
 COPY . .
 
-RUN docker build --nocache -t
+$ docker build --nocache -t
 
 # run from working directory, and separate args in the json syntax
 CMD ["python", "./MsTokyoBot.py"]
