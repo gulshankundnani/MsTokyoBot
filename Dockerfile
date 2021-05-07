@@ -1,4 +1,4 @@
-docker up --force-recreate
+RUN docker up -d --build
 
 FROM python
 
