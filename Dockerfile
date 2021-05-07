@@ -3,7 +3,7 @@ FROM python
 
 RUN apt-get update \
     && apt-get install -y git
-RUN git clone https://gulshankundnani:github.com/gulshankundnani/MsTokyoBot.git /app
+RUN git clone git@github.com:gulshankundnani/MsTokyoBot.git /app
 # run this before copying requirements for cache efficiency
 RUN pip install --upgrade pip
 #set work directory early so remaining paths can be relative
