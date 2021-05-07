@@ -1,4 +1,4 @@
-docker-compose build
+docker run
 
 FROM python
 
