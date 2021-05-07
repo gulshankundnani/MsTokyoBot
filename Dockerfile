@@ -1,4 +1,4 @@
-# docker build --nocache
+# docker up --force-recreate
 
 FROM python
 
