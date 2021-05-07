@@ -1,4 +1,4 @@
-
+docker build --nocache -t
 FROM python
 
 # run this before copying requirements for cache efficiency
