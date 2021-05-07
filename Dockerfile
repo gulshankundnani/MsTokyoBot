@@ -1,4 +1,4 @@
-docker run
+docker build --no-cache
 
 FROM python
 
