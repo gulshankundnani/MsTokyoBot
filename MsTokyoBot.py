@@ -456,7 +456,8 @@ async def my_event_handler(event):
 #            await event.reply(bot_response)
     
     except Exception as e:
-        pass
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.ChatAction)
 async def chat_action_handler(event):
