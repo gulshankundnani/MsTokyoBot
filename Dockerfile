@@ -1,4 +1,3 @@
-RUN apt-get update
 
 FROM python
 
