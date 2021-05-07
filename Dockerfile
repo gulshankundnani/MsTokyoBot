@@ -1,4 +1,4 @@
-docker-compose up -d --build --force-recreate
+docker build --no-cache
 
 FROM python
 
