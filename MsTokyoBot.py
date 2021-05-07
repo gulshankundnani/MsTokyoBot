@@ -380,12 +380,11 @@ async def my_event_handler(event):
         toUserId = None
         if replytomsgid is not None:
             msgSearch = await client.get_messages(channelId, ids=replytomsgid)
-            toUserEntity = await client.get_entity(msgSearch.from_id)
-            toUserId = toUserEntity.id
+            if msgSearch is not None:
+                toUserEntity = await client.get_entity(msgSearch.from_id)
+                toUserId = toUserEntity.id
         con = await getDbCon()
-        eventDta = await eventData(event)
-        channelId = eventDta[3]
-        channelEntity = eventDta[4]
+        channelEntity = await client.get_entity(channelId)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
@@ -554,7 +553,8 @@ async def my_event_handler(event):
             await clean(event)
     
     except Exception as e:
-        pass
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.ChatAction)
 async def chat_action_handler(event):
