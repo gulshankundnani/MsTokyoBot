@@ -1,4 +1,4 @@
-docker build --no-cache
+docker-compose build
 
 FROM python
 
