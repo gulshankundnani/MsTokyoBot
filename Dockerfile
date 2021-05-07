@@ -9,7 +9,7 @@ WORKDIR /app
 # just this file first to cache the pip install step when code changes
 COPY requirements.txt .
 COPY MsTokyoBot.py .
-COPY aiml .
+#COPY aiml .
 
 #install dependencies
 RUN pip install -r requirements.txt
