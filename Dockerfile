@@ -1,6 +1,9 @@
 
 FROM python
 
+RUN apt-get update
+RUN apt-get install git
+git clone https://github.com/gulshankundnani/MsTokyoBot.git .
 # run this before copying requirements for cache efficiency
 RUN pip install --upgrade pip
 #set work directory early so remaining paths can be relative
