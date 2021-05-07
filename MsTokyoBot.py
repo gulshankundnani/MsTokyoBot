@@ -43,7 +43,7 @@ from PIL import Image
 from io import BytesIO
 import io
 import base64
-import aiml
+#import aiml
 #import asyncio
 
 con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
@@ -100,13 +100,13 @@ cmds += ".cmd : Get list of commands \n"
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
 
-kernel = aiml.Kernel()
+#kernel = aiml.Kernel()
 
-if os.path.isfile("bot_brain.brn"):
-	kernel.bootstrap(brainFile = "bot_brain.brn")
-else:
-	kernel.bootstrap(learnFiles = os.path.abspath("aiml/std-startup.xml"), commands = "load aiml b")
-	kernel.saveBrain("bot_brain.brn")
+#if os.path.isfile("bot_brain.brn"):
+#	kernel.bootstrap(brainFile = "bot_brain.brn")
+#else:
+#	kernel.bootstrap(learnFiles = os.path.abspath("aiml/std-startup.xml"), commands = "load aiml b")
+#	kernel.saveBrain("bot_brain.brn")
 
 settings = []
 
@@ -451,9 +451,9 @@ async def my_event_handler(event):
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                     await deleteCommandMessage(channelId,event.message.id)
 
-        if toUserId == myID:
-            bot_response = kernel.respond(event.raw_text.lower())
-            await event.reply(bot_response)
+#        if toUserId == myID:
+#            bot_response = kernel.respond(event.raw_text.lower())
+#            await event.reply(bot_response)
     
     except Exception as e:
         pass
