@@ -1,5 +1,7 @@
 from telethon import TelegramClient, events, sync
 from telethon import functions, types
+from telethon.tl.types import *
+from telethon.tl.functions.messages import *
 from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin
 from telethon.tl.functions.channels import DeleteMessagesRequest
 from telethon.tl.functions.channels import EditBannedRequest
@@ -9,68 +11,257 @@ from telethon.tl.functions.messages import (GetMessagesRequest)
 from telethon.tl.functions.messages import (SendMediaRequest)
 from telethon.tl.functions.messages import SearchRequest
 from telethon import errors
-from PyDictionary import PyDictionary
 from googletrans import Translator
 from bs4 import BeautifulSoup
-from PIL import Image
-import openpyxl
-from openpyxl import Workbook
+import html
+#import openpyxl
+#from openpyxl import Workbook
 import os
 import sys
 import time
+import emoji
 import random
 from random import randrange
 import GoogleNews
 from GoogleNews import GoogleNews
 from dadjokes import Dadjoke
-import wikipedia
 import googletrans
 import json
 import requests
 import re
 import urllib.request as urllib2
 import gspread
+
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import timedelta
+from datetime import timedelta,date
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import sched, time
+from better_profanity import profanity
+import PIL
+from PIL import Image
+from io import BytesIO
+import io
+import base64
+import aiml
+#import asyncio
 
-#from telethon.sessions import StringSession
-dadjoke = Dadjoke()
+con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
+s = sched.scheduler(time.time, time.sleep)
 
-scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name("MsTokyoBot-462b786ad30e.json",scope)
-gclient = gspread.authorize(creds)
-sheet = gclient.open("Reputation").sheet1
+async def getDbCon():
+    #conn = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
+    return con
+
+#scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+#creds = ServiceAccountCredentials.from_json_keyfile_name("MsTokyoBot-462b786ad30e.json",scope)
+#gclient = gspread.authorize(creds)
+#sheet = gclient.open("Reputation").sheet1
 
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
 bot_token = '1318065263:AAF_brgyVqsq5GKVYczM6WaMrENdG8dJNLs'
-happy_words = ['Cheerful','Contented','Delighted','Ecstatic','Elated','Joyous','Overjoyed','Pleased','Blissful','Chuffed','Delighted','Glad','Gratified','Joyful','Joyous','Pleased','Satisfied','Thankful','Tickled']
-sad_words = ['Hopeless','Depressed','Mournful','Despairing','Miserable','Downcast','Gloomy','Heartbroken','Sorrowful','Glum','Dispirited','Dejected','Defeated','Woeful','Disheartened','Crushed','Crestfallen','Dismayed','Dismal','','Dreary']
 
-commands = '++ [increase reputation (reply to a message/person)]\n\n'
-commands += '-- [decrease reputation (reply to a message/person)]\n\n'
-commands += 'twhat [get meaning of word (i.e. twhat happy)]\n\n'
-commands += 'tjoke [get random joke]\n\n'
-commands += 'tm [mute a user (reply to a message)]\n\n'
-commands += 'tum [unmute a user (reply to a message)]\n\n'
-commands += 'tb [ban a user (reply to a message)]\n\n'
-commands += 'tub [unban a user (reply to a message)]\n\n'
-commands += 'tstat [get stats of a user]\n\n'
-commands += 'tnews [get news based on the terms(i.e. tnews [term])]\n\n'
-commands += 'tlangcodes [get all language codes]\n\n'
-commands += 'ttranslate [translate the terms(i.e. ttranslate [language code][term])]\n\n'
-commands += 'tcommands [get all commands]\n\n'
-
-joke_category = ['neutral','twister','all']
-roast = ['A demitasse would fit his head like a sombrero.','A guy with your IQ should have a low voice too!','A half-wit gave you a piece of his mind, and you held on to it.','A sharp tongue is no indication of a keen mind.','After meeting you, I’ve decided I am in favor of abortion in cases of incest.','All of your ancestors must number in the millions; it’s hard to believe that many people are to blame for producing you.','All that you are you owe to your parents. Why don’t you send them a penny and square the account?','Alone: In bad company.','And there he was: reigning supreme at number two.','Any friend of yours … is a friend of yours.','Any similarity between you and a human is purely coincidental!','Anyone who told you to be yourself couldn’t have given you worse advice.','Are you always so stupid or is today a special occasion?','Are you brain-dead?','Are your parents siblings?','As an outsider, what do you think of the human race?','As useless as rubber lips on a woodpecker.','As welcome as a rattlesnake at a square dance.','At least you are not obnoxious like so many other people – you are obnoxious in a different and worse way!','Before you came along we were hungry. Now we are fed up.','Believe me, I don’t want to make a monkey out of you. Why should I take all the credit?','Better at sex than anyone, now all he needs is a partner.','Brains aren’t everything. In fact, in your case they’re nothing!','Calling you stupid would be an insult to stupid people.','Can I borrow your face for a few days while my ass is on vacation?','Careful now, don’t let your brains go to your head!','Converse with any plankton lately?','Diarrhea of the mouth; constipation of the ideas.','Did the mental hospital test too many drugs on you today?','Did you eat paint chips when you were a kid?','Did your parents ever ask you to run away from home?','Did your parents have any children that lived?','Do you ever wonder what life would be like if you’d had enough oxygen at birth?','Do you have to leave so soon? I was about to poison the tea.','Do you want do die stupid?','Do you want me to accept you as you are or do you want me to like you?','Doesn’t know the meaning of the word fear, but then again he doesn’t know the meaning of most words.','Don’t feel bad. A lot of people have no talent!','Don’t get insulted, but is your job devoted to spreading ignorance?','Don’t let your mind wander — it’s too little to be let out alone.','Don’t mind him. He has a soft heart and a head to match.','Don’t thank me for insulting you. It was my pleasure.','Don’t think, it may sprain your brain!','Don’t you have a terribly empty feeling —- in your skull?','Don’t you love nature, despite what it did to you?','Don’t you need a license to be that ugly?','Don’t you realize that there are enough people to hate in the world already without your working so hard to give us another?','Ever since I saw you in your family tree I’ve wanted to cut it down.','Every girl has the right to be ugly, but you abused the privilege.','Everyone is gifted. Some open the package sooner.','Excellent time to become a missing person.','Fat? You’re not fat, you’re just … fat.','For two cents I’d give you a piece of my mind – and all of yours.','Forgot to pay his brain bill.','Go ahead, tell them everything you know. It’ll only take 10 seconds.','Go fart peas at the moon !!','Grasp your ears firmly and remove your head from your ass.','Has reached rock bottom and shows signs of starting to dig.','Has the IQ of lint.','Have you considered suing your brains for nonsupport?','He can open his mail with that nose!','He can think without moving his lips!','He comes from a long line of real estate people — they’re a vacant lot.','He does the work of three men: Moe, Larry, and Curly.','He doesn’t know whether to scratch his watch or wind his butt.','He has a mechanical mind. Too bad he forgot to wind it up this morning.','He has a mind like a steel trap — always closed!','He has depth, but only on the surface. Down deep inside, he is shallow.','He has more faces than Mount Rushmore.','He has one brain cell, and it is fighting for dominance.','He is always lost in thought — it’s unfamiliar territory.','He is dark and handsome. When it’s dark, he’s handsome.','He is depriving a village somewhere of an idiot.','He is living proof that man can live without a brain!','He is so conceited his eyes behold each other perfectly.','He is so short his hair smell like feet','He is so short, when it rains he is always the last one to know.','He is so old that his blood type was discontinued.','He is the kind of a man that you would use as a blueprint to build an idiot.','He named the street he owned after his wife. What a grand statement of his love for her; for she was cold, hard, cracked, and only gets plowed around the holidays.','He smells the coffee, but can’t find the pot / a cup.','He would be out of his depth in a parking lot puddle.','Heard your family went to a restaurant where they serve crabs just so they could bring you along.','He’d steal the straw from his mother’s kennel.','Hello – tall, dark and obnoxious!','Here’s 20 cents. Call all your friends and bring back some change!','He’s got that far away look. The farther he gets, the better he looks.','He’s just visiting this planet.','He’s not stupid; he’s possessed by a retarded ghost.','He’s so dense that light bends around him.','He’s so fat, he has the only car in town with stretch marks.','He’s so short he can sit on a piece of toilet paper and dangle his feet.','He’s the first in his family born without a tail.','He’s the only man who, if told to screw himself, could do it.','He’s the reason brothers and sisters shouldn’t marry.','Hey, act your age — senile!','Hey, I heard you went to the butcher and asked for 10 cents worth of dog meat and he asked you if you wanted it wrapped or if you would eat it on the spot.','Hey, I remember you when you had only one stomach.','Hi! I’m a human being! What are you?','His brain waves fall a little short of the beach.','His men would follow him anywhere, but only out of morbid curiosity.','His origins are so low, you’d have to limbo under his family tree.','His personality’s split so many ways he goes alone for group therapy.','His suitcase doesn’t have a handle.','How did you get here? Did someone leave your cage open?','How many years did it take you to learn how to breathe?','I always wanted to be a troubleshooter but now I see you are not worth it!','I believe in respect for the dead; in fact I could only respect you if you WERE dead.','I bet your brain feels as good as new, seeing that you’ve never used it.','I bet your mother has a loud bark!','I can tell you are lying. Your lips are moving.','I can tie a coffee bean to my butt and swim across the Columbia River and make a darker stain than that (about weak coffee.)','I can’t seem to remember you name, and please don’t help me!','I can’t talk to you right now; tell me, where will you be in ten years?','I certainly hope you are sterile','I could make a monkey out of you, but why should I take all the credit?','I don’t consider you a vulture. I consider you something a vulture would eat.','I don’t know what makes you so stupid, but it really works!','I don’t know who you are, but whatever it is, I’m sure everyone will agree with me.','I don’t mind that you are talking so long as you don’t mind that I’m not listening.','I don’t think you are a fool. But then what’s MY opinion against thousands of others?','I don’t want you to turn the other cheek. It’s just as ugly.','I feel sorry for you because you are so homely but I feel even sorrier for other people because they have to look at you.','I hear the only place you’re ever invited is outside.','I hear what you’re saying but I just don’t care.','I hear you are an officer. Your rank is – just plain rank!','I hear you are being accepted into an exclusive club cause they need someone to snub.','I hear you are connected to the Police Department — by a pair of handcuffs.','I hear you are very kind to animals so please give that face back to the gorilla.','I hear you changed your mind! What did you do with the diaper?','I hear you were born on a farm. Any more in the litter?','I hear you were born on April 2; a day too late!','I heard that your brother was an only child.','I heard you got a brain transplant and the brain rejected you!','I heard you went to have your head examined but the doctors found nothing there.','I know you are nobody’s fool but maybe someone will adopt you.','I know you’re a self-made man. It’s nice of you to take the blame!','I know you’re not as stupid as you look. Nobody could be!','I like you. People say I’ve no taste, but I like you.','I like your approach, now let’s see your departure.','I reprimanded my son for mimicking you. I told him not to act like a fool.','I thought of you all day today. I was at the zoo.','I understand you, but thousands wouldn’t!','I used to think that you were a big pain in the neck. Now I have a much lower opinion of you.','I want nothing out of you but breathing, and very little of that!','I will defend to your death my right to my opinion.','I wonder how many angels could dance on his head?','I worship the ground that awaits you.','I would ask you how old you are but I know you can’t count that high.','I would have liked to insult you, but with your intelligence you wouldn’t get offended.','I would like the pleasure of your company but it only gives me displeasure.','I wouldn’t piss in his ear if his brain was on fire!','I’d hate to see you go, but I’d love to watch you leave!','I’d like to give you a going-away present … but you have to do your part.','I’d like to have the spitting concession his grave.','I’d like to help you out. Which way did you come in?','I’d like to leave you with one thought … but I’m not sure you have a place to put it!','I’d like to see things from your point of view but I can’t seem to get my head that far up my ass. (Thanks, llaje)','I’d love to go out with you, but my favorite commercial is on TV.','I’d rather pass a kidney stone than another night with you.','I’d slap you senseless … but I can’t spare three seconds!','If brains were rain, you`d be a desert.','If I ever need a brain transplant, I’d choose yours because I’d want a brain that had never been used.','If I had a face like yours, I’d sue my parents!','If I promise to miss you, will you go away?','If I said anything to you that I should be sorry for, I’m glad.','If I want any shit outta you I’ll squeeze your head.','If I want your stupid opinion, I’ll beat it out of you.','If I wanted to hear from an ass, I’d fart. ','If I were as ugly as you are, I wouldn’t say hello, I’d say boo!','If idiots could fly, this would be an airport.','If ignorance is bliss, you must be orgasmic.','If manure were music, you’d be a brass band.','If sex were fast food, you’d have an arch over your head.','If she was cast as Lady Godiva the horse would steal the show.','If truth is stranger than fiction, you must be truth!','If we were to kill everybody who hates you, it wouldn’t be murder; it would be genocide!','If what you don’t know can’t hurt you, she’s practically invulnerable.','If you act like an ass, don’t get insulted if people ride you.','If you don’t like my opinion of you – improve yourself!','If you ever tax your brain, don’t charge more than a penny.','If you give him a penny for his thoughts, you get change back.','If you had another brain like the one you’ve got, you’d still be a half-wit.','If you stand close enough to him, you can hear the ocean.','If you were a body of water, you’d be a kiddie pool.','If you were twice as smart, you’d still be stupid.','If your brain were chocolate, it wouldn’t fill an M&M.','Ignorance can be cured. Stupid is forever.','I’ll never forget the first time we met – although I’ll keep trying.','I’m blonde, what’s your excuse?','I’m busy now. Can I ignore you some other time?','I’m glad to see you’re not letting your education get in the way of your ignorance.','I’m going to memorize your name and throw my head away.','I’m not as dumb as you look.','In the land of the witless, the half-wit is king.','Instead of being born again, why don’t you just grow up?','Is that your nose or are you eating a banana?','It is mind over matter. I don’t mind, because you don’t matter.','It is such a shame to ruin such beautiful blonde hair by dying your roots black.','It’s hard to get the big picture when you have such a small screen.','I’ve come across decomposed bodies that are less offensive than you are.','I’ve had many cases of love that were just infatuation, but this hate I feel for you is the real thing.','I’ve hated your looks from the start they gave me.','I’ve only got one nerve left, and you’re getting on it.','I’ve seen people like you, but I had to pay admission!','Judging by the old saying, “What you don’t know can’t hurt you,” he’s practically invulnerable.','Keep talking, someday you’ll say something intelligent!','Keep talking. I always yawn when I’m interested.','Learn from your parents’ mistakes – use birth control!','Let’s play horse. I’ll be the front end and you be yourself.','Let’s play house. You be the door and I’ll slam you.','Look, don’t go to a mind reader; go to a palmist; I know you’ve got a palm.','Make a mental note . . . oh, I see you’re out of paper!','Make somebody happy. Mind your own business.','Man alive! But I wish you weren’t.','Moonlight becomes you – total darkness even more!','Never enter a battle of wits unarmed.','Nice to see you on your feet. Who sent the derrick?','No one will ever know that you’ve had a lobotomy, if you wear a wig to hide to the scars and learn to control the slobbering.','Nobody says that you are dumb. They just say you were sixteen years old before you learned how to wave good-bye.','Now go away or I shall taunt you a second time.','Of all the people I’ve met you’re certainly one of them.','Ordinarily people live and learn. You just live.','Pardon me, but you’ve obviously mistaken me for someone who gives a damn.','People can’t say that you have absolutely nothing! After all, you have inferiority!','People clap when they see you – their hands over their eyes or ears.','People say that you are outspoken but not by anyone that I know of.','People say that you are the perfect idiot. I say that you are not perfect but you are doing all right.','Perhaps your whole purpose in life is simply to serve as a warning to others.','Please breathe the other way. You’re bleaching my hair.','She could eat a watermelon through a picket fence! ','She had a mouth dirtier than a wicker toilet seat. ','She has a nice butter face. Everything looks nice, but her face.','She thinks the rearview mirror is for putting on make-up.','She was another one of his near Mrs.','She’s a lot like train tracks – she’s been laid across the country. ','She’s got a body that won’t quit and a brain that won’t start.','She’s got more chins than the Hong Kong telephone book.','She’s like Taco Bell. When people see her, they run for the border.','She’s so ugly they used to put a pot roast in her lap so the dog would play with her.','She’s so ugly, she’d make a freight train take a dirt road!','Sit down and give your mind a rest.','Slit your wrists – it will lower your blood pressure.','So stupid, he moves his lips when watching TV. ','So ugly, robbers give him their masks to wear.','So, a thought crossed your mind? Must have been a long and lonely journey.','Some day you will find yourself – and wish you hadn’t.','Some drink from the fountain of knowledge, but he just gargled.','Some folks are so dumb, they have to be watered twice a week.','Some people are has-beens. You are a never-was.','Some people don’t hesitate to speak their minds because they have nothing to lose.','Somebody else is doing the driving for that boy!','Someday you’ll go far, if you catch the right train.','Someone said you are not fit to sleep with pigs. I stuck up for the pigs.','Someone said you are not fit to sleep with pigs. I stuck up for you and said, ‘oh yes she is.’','Someone took a photo of you once but it didn’t turn out. You could be seen too clearly.','Take a vacation; go to Club Dead.','Take off that mask! Don’t you think it’s a little early for Halloween?','Talk is cheap, but so are you.','That’s a very meaty question and I’d like to give it a very meaty answer -baloney!','The closest she/he’ll ever get to a brainstorm is a slight drizzle.','The cream rises to the top. So does the scum.','The going got weird and he turned pro.','The inbreeding is certainly obvious in your family.','The next time you shave, could you stand a little closer to the razor?','The only thing he brought to this job was his car.','The overwhelming power of the sex drive was demonstrated by the fact that someone was willing to father you.','The thing that terrifies me the most is that someone might hate me as much as I loathe you.','The twinkle in his eyes is actually the sun shining between his ears.','The wheel is still spinning but the hamster died. ','There are only two things I dislike about her – her face.','There are several people in this world that I find obnoxious and you are all of them.','There is no vaccine against stupidity.','They just invented a new coffin just for you that goes over the head. It’s for people who are dead from the neck up.','They said you were a great asset. I told them they were off by two letters.','They say opposites attract. I hope you meet someone who is good-looking, intelligent, and cultured.','They say space is a dangerous place . . . especially if it’s between your ears!','They say that travel broadens one. You must have been around the world.','They say that two heads are better than one. In your case, one would have been better than none.','They say truth is stranger than fiction. Look, your mother gave birth to you. ','They shot him through the stupid forest, and he didn’t miss a tree. ','Thinking isn’t your strong suit, is it? –from “Lost In Space”','This is no battle of wits between you and me. I never pick on an unarmed man.','Too bad stupidity isn’t painful.','We all spring from apes but you didn’t spring far enough.','We do not complain about your shortcomings but about your long stayings.','We heard that when you ran away from home your folks sent you a note saying, “Do not come home and all will be forgiven.”','We know that you would give your life for us. Promises, promises!','We know that you would go to the end of the world for us. But would you stay there?','We know you could not live without us. We’ll pay for the funeral.','We’ll get along fine as soon as you realize I’m God.','Well, I’ll see you in my dreams – if I eat too much.','What color is the sky in your world? ','What he lacks in intelligence, he more than makes up for in stupidity.','Whatever anyone says to you goes in one ear and out the other because nothing is blocking traffic.','Whatever is eating you – must be suffering horribly.','What’s the latest dope – besides you?','When God was throwing intelligence down to the Earth, you were holding an umbrella.','When I look into your eyes, I see the back of your head.','When you die, I’d like to go to your funeral but I’ll probably have to go to work that day. I believe in business before pleasure.','When you die, you should have your brain donated to science. I hear they’re trying to come up with the perfect vacuum.','When you feel terrific, notify your face.','When you fell out of the ugly tree, you hit every branch on the way down.','When you get run over by a car it shouldn’t be listed under accidents.','When you pass away and people ask me what the cause of your death was, I’ll say your stupidity.','When you were a child your mother wanted to hire someone to take care of you but the Mafia wanted too much.','When you were born, God admitted that even He could make a mistake!','Whom am I calling “stupid”? I don’t know. What’s your name?','Why don’t you go to the library and brush up on your ignorance?','With a mind like yours, who needs a body?','Worst-dressed sentient being in the known universe.','Would you like some cheese and crackers to go with that whine?','Would you like to replace my business partner who died this morning? I’ll arrange it with the undertaker.','You always have your ear to the ground. So how’s life in the gutter?','You are a man of the world — and you know what sad shape the world is in.','You are about as useful as a windshield wiper on a goat’s ass.','You are as strong as an ox and almost as intelligent.','You are down to earth but not quite far down enough.','You are living proof that manure can grow legs and walk.','You are no longer beneath my contempt.','You are not as bad as people say – you are worse!','You are pretty as a picture and we’d love to hang you.','You are so boring that you can’t even entertain a doubt.','You are so dishonest that I can’t even be sure that what you tell me are lies!','You are so dumb you sit on the TV and watch the sofa.','You are so fat that I hear you were arrested three times for jaywalking when all the time you were just standing on the corner waiting for the light to change.','You are so stupid you got hit by a parked car','You are such a smart-ass I bet you could sit on a carton of ice cream and tell what flavor it is.','You are the kind of person who, when one first meets you, one doesn’t like you.','But when one gets to know you better, one hates you.','You could throw her in the river and skim ugly for two days.','You don’t sweat much, for a fat girl.','You grow on people – like a wart!','You have a face only a mother could love – and she hates it!','You have a good weapon against muggers – your face!','You have a lot of well-wishers. They would all like to throw you down one.','You have a speech impediment … your foot.','You have a striking face. Tell me, how many times were you struck there?','You have an inferiority complex – and it’s fully justified.','You have no trouble making ends meet. Your foot is always in your mouth!','You liked your first chin so much, you added two more.','You make me believe in reincarnation. Nobody can be as stupid as you in one lifetime.','You must have a low opinion of people if you think they’re your equals.','You must have gotten up on the wrong side of the cage this morning.','You possess a mind not merely twisted, but actually sprained.','You remind me of the ocean – you make me sick.','You say that you are always bright and early. Well OK, we know you are early.','You should be the poster child for birth control. ','You should do some soul-searching. Maybe you’ll find one.','You should have been born in the Dark Ages; you look terrible in the light.','You should toss out more of your funny remarks; that’s all they’re good for.','You started at the bottom – and it’s been downhill ever since.','You used to be arrogant and obnoxious. Now you are just the opposite. You are obnoxious and arrogant.','You were born because your mother didn’t believe in abortion; now she believes in infanticide.','You were the answer to a prayer. Your parents prayed that the world would be made to suffer and here you came along.','You will never be able to live down to your reputation!','Your conversation is like the waves of the sea. It makes me sick!','Your dog is so stupid, he chases parked cars. ','Your family tree is good but you are the sap.','Your mouth is getting too big for your muzzle.','Your teeth are like stars – they come out at night.','Your verbosity is exceeded only by your stupidity.','You’re a habit I’d like to kick; with both feet.','You’re acquitting yourself in a way that no jury ever would.','You’re like one of those “idiot savants,” except without the “savant” part.','You’re nobody’s fool. Let’s see if we can get someone to adopt you.','You’re not yourself today. I noticed the improvement immediately.','You’re so dumb you thought Taco Bell was a phone company.','You’re so fat when you jumped up you got stuck.','You’re so fat you got baptized at Sea World.','You’re so fat you laid down in the ocean and Spain claimed you as the New World.','You’re so fat you saw 90210 on a scale.','You’re so fat you use hoola-hoops to keep your socks up.','You’re so fat, when you wear a yellow rain coat people scream ”taxi”.','You’re so low you could milk a pregnant snake!','You’re so old you drove a chariot to school.','You’re so slow it takes you an hour and a half to watch “Sixty Minutes.”','You’re so small, you pose for trophies.','You’re so stupid you threw a rock at the ground and missed. ','You’re so stupid you trip over the cord of a cellular phone!','You’re so ugly when you went to a haunted house they offered you a job.','You’re so ugly you almost look like your mother.','You’re so ugly you have to trick or treat over the phone.','You’re so ugly you make blind kids cry.','You’re so ugly your husband goes everywhere alone. ','You’re so ugly your husband takes you with him everywhere he goes so he doesn’t have to kiss you bye. ','You’re so ugly, when you walk into taco bell, EVERYONE runs for the border!','You’re so ugly, you had tinted windows on your incubator. ','You’re the best at all you do – and all you do is make people hate you.','You’re very smart. You have brains you never used.','Yours is a prima facie case of ugliness. And your body is ugly too.','You’ve got your head so far up your ass you can chew your food twice.','Light travels faster than sound. This is why some people appear bright until they open their mouths.','I always take life with a grain of salt. Plus, a slice of lemon. And a shot of tequila.','I dont have a beer gut. I have a protective covering for my rock hard abs.','I read recipes the same way I read science fiction. I get to the end and I think, Well, thats not going to happen.','Money talks. But all mine ever says is goodbye.','Knowledge is knowing a tomato is a fruit. Wisdom is not putting it in a fruit salad.','Lifes like a bird. Its pretty cute until it poops on your head.','Im skeptical of anyone who tells me they do yoga every day. Thats a bit of a stretch.','I dont have a girlfriend. But I know a girl that would get really mad if she heard me say that.','A computer once beat me at chess. But it was no match for me at kickboxing.','I have a lot of growing up to do. I realized that the other day inside my fort.','Give a man a fish and you feed him for a day. But teach a man to fish, and you saved yourself a fish, havent you?','We have enough youth. How about a Fountain of Smart?','A clear conscience is usually the sign of a bad memory.','My therapist says I have a preoccupation with vengeance. Well see about that.','My first experience with culture shock? Probably when I peed on an electric fence.','Worrying works! More than 90 percent of the things I worry about never happen.','I dont have an attitude problem. You have a perception problem.','Money cant buy you happiness? Well, check this out, I bought myself a Happy Meal!','The easiest time to add insult to injury is when youre signing somebodys cast.','The problem isnt that obesity runs in your family. The problem is no one runs in your family.','You dont need a parachute to go skydiving. You need a parachute to go skydiving twice.','Letting go of a loved one can be hard. But sometimes, its the only way to survive a rock climbing catastrophe.','A positive attitude may not solve all your problems. But it will annoy enough people to make it worth the effort.','Always borrow money from a pessimist. He wont expect it back.','Build a man a fire, and hell be warm for a day. Set a man on fire, and hell be warm for the rest of his life.','Knowledge is power, and power corrupts. So study hard and be evil.','Isnt it odd the way everyone automatically assumes that the goo in soap dispensers is always soap? I like to fill mine with mustard, just to teach people a lesson in trust.','I used to be indecisive. Now Im not sure.','Women should not have children after 35. Really, 35 children are enough.','Going to church doesnt make you a Christian any more than standing in a garage makes you a car.','Its never a good idea to keep both feet firmly on the ground. Youll have trouble putting on your pants.','Change is inevitable—except from a vending machine.','Why does someone believe you when you say there are four billion stars but checks when you say the paint is wet?','I dont suffer from insanity. I enjoy every minute of it.','Whats the difference between a northern fairytale and a southern fairytale? A northern fairytale begins Once upon a time… A southern fairytale begins Yall aint gonna believe this…','The last thing I want to do is hurt you. But its still on the list.','There are three kinds of people: those who can count and those who cant.','I am not a vegetarian because I love animals. I am a vegetarian because I hate plants.','At every party there are two kinds of people: those who want to go home and those who dont. The trouble is, they are usually married to each other.','If Walmart is lowering prices every day, why isnt anything in the store free yet?','The easiest job in the world has to be coroner. Whats the worst thing that could happen? If everything goes wrong, maybe youd get a pulse.','I have all the money Ill ever need—if I die by 3:00 p.m. this afternoon.','A TV can insult your intelligence. But nothing rubs it in like a computer.','When tempted to fight fire with fire, always remember… The fire department usually uses water.','You are such a good friend that, if we were on a sinking ship together and there was only one life jacket, Id miss you so much and talk about you fondly to everybody who asked.','The early bird might get the worm, but the second mouse gets the cheese.','This is my step ladder. I never knew my real ladder.','Some cause happiness wherever they go. Others whenever they go.','Its not the fall that kills you. Its the sudden stop at the end.','Feeling pretty proud of myself. The puzzle I bought said 3-5 years, but I finished it in 18 months.','Just burned 2,000 calories. Thats the last time I leave brownies in the oven while I nap.','My boss is going to fire the employee with the worst posture. I have a hunch, it might be me.','Dont trust atoms, they make up everything.','Did you hear about the guy who got hit in the head with a can of soda? He was lucky it was a soft drink.','I was addicted to the hokey pokey… but thankfully, I turned myself around.','When I lose the TV controller, its always hidden in some remote destination.','Most people are shocked when they find out how bad I am as an electrician.','My first job was working in an orange juice factory, but I got canned: couldnt concentrate.','My math teacher called me average. How mean!']
-
-funStart = 0
-startTime = None
-funStop = 0
-players = []
+cmds = ".startbot : Start the bot \n" 
+cmds = "++ : Increase reputation \n"
+cmds += "-- : Reduce reputation \n"
+cmds += ".toprep : Get user reputation \n"
+cmds += ".translate : Get translation \n"
+cmds += ".langcodes : Get language codes \n"
+cmds += ".m : Mute user \n"
+cmds += ".um : Unmute user \n"
+cmds += ".b : Ban user \n"
+cmds += ".news : Get news \n"
+cmds += ".what : Get meaning \n"
+cmds += ".stat : Get user stats \n"
+cmds += ".joke : Get a joke \n"
+cmds += ".yomama : Get yomama joke \n"
+cmds += ".loc : Get location estimation \n"
+cmds += ".quote : Get a quote \n"
+cmds += ".advice : Get an advice \n"
+cmds += ".dadjoke : Get a dad joke \n"
+cmds += ".insult : Get insulted \n"
+cmds += ".bored : Get an activity \n"
+cmds += ".ping : Get bot status \n"
+cmds += ".trv : Get trivia game \n"
+cmds += ".reputation : use true/false to enable or disable reputation  \n"
+cmds += ".profanity : use true/false to enable or disable profanity check  \n"
+cmds += ".profaneadd : Add banned or profanity word eg: profaneadd word \n"
+#cmds += ".profanedel : Add banned or profanity word eg: profanedel word \n"
+#cmds += ".trvcat : Get trivia categories \n"
+cmds += ".welcome : use true/false to enable or disable welcome \n"
+cmds += ".welcometext : set welcome text eg: welcome {firstname/username} \n"
+cmds += ".left : use true/false to enable or disable welcome \n"
+cmds += ".lefttext : set left text \n"
+cmds += ".art : Get art pics \n"
+cmds += ".clean : Clean the group. Make sure you have disabled messages before using the command. \n"
+cmds += ".cmd : Get list of commands \n"
 
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
+
+kernel = aiml.Kernel()
+
+if os.path.isfile("bot_brain.brn"):
+	kernel.bootstrap(brainFile = "bot_brain.brn")
+else:
+	kernel.bootstrap(learnFiles = os.path.abspath("aiml/std-startup.xml"), commands = "load aiml b")
+	kernel.saveBrain("bot_brain.brn")
+
+settings = []
+
+isActive = True
+triviaDifficulty = ["easy","medium","hard"]
+triviaCategory = {'GK':'9','Books':'10','Film':'11','Music':'12','Theatre':'13','Tv':'14','Video_games':'15','Board_games':'16','Science_Nature':'17','Computer':'18','Math':'19','Myth':'20','Sports':'21','Geography':'22','History':'23' ,'Politics':'24' ,'Art':'25' ,'Celebrities':'26' ,'Animals':'27' ,'Vehicles':'28','Comic':'29','Gadgets':'30','Anime':'31','Cartoon':'32','Any':'any'}
+triviaUrl = "https://opentdb.com/api.php?amount=1&type=multiple"
+
+def image_to_byte_array(image:Image):
+  imgByteArr = io.BytesIO()
+  image.save(imgByteArr, format=image.format)
+  imgByteArr = imgByteArr.getvalue()
+  return imgByteArr
+
+async def AddClient(ChannelEntity):
+    #if con is None or con.closed == 0:
+    #    con = await getDbCon()
+    if ChannelEntity is not None:
+        con = await getDbCon()
+        cid = ChannelEntity.id
+        select = 'SELECT "SettingsID" FROM "ChannelSettings" WHERE "ChannelID" = %s'
+        selectparam = (str(cid),)
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        sid = cur.fetchone()
+        if sid is None:
+            insert = 'INSERT INTO "ChannelSettings" ("ChannelID","Profanity","Reputation","AIChat","Active") VALUES (%s,%s,%s,%s,%s)'
+            insertparam = (str(ChannelEntity.id),False,True,False,True)
+            cur = con.cursor()
+            cur.execute(insert,insertparam)
+            con.commit()
+        select = 'SELECT "ChannelId" FROM "ChannelDetails" WHERE "ChannelId" = %s'
+        selectparam = (str(cid),)
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        id = cur.fetchone()
+        if id is None:
+            insert = 'INSERT INTO "ChannelDetails" ("ChannelId","ChannelTitle","ChannelUsername","AccessHash","Active") VALUES (%s,%s,%s,%s,%s) ON CONFLICT("ChannelId") DO NOTHING'
+            insertparam = (ChannelEntity.id,ChannelEntity.title,ChannelEntity.username,ChannelEntity.access_hash,True)
+            cur = con.cursor()
+            cur.execute(insert,insertparam)
+            con.commit()
+            
+async def UpdateClientSettings(channelid,key,value):
+    #if con is None or con.closed == 0:
+    #    con = await getDbCon()
+    if channelid is not None and key is not None and value is not None:
+        con = await getDbCon()
+        select = 'SELECT "SettingsID" FROM "ChannelSettings" WHERE "ChannelID" = %s'
+        selectparam = (str(channelid),)
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        sid = cur.fetchone()
+        if sid is None:
+            insert = 'INSERT INTO "ChannelSettings" ("ChannelID","Profanity","Reputation","AIChat") VALUES (%s,%s,%s,%s)'
+            insertparam = (str(ChannelEntity.id),False,True,False)
+            cur = con.cursor()
+            cur.execute(insert,insertparam)
+            con.commit()
+        else:
+            if key == 'Profanity' and value == 'true':
+                update = 'UPDATE "ChannelSettings" set "Profanity" = True WHERE "ChannelID" = %s'
+            if key == 'Profanity' and value == 'false':
+                update = 'UPDATE "ChannelSettings" set "Profanity" = False WHERE "ChannelID" = %s'
+            if key == 'Reputation' and value == 'true':
+                update = 'UPDATE "ChannelSettings" set "Reputation" = True WHERE "ChannelID" = %s'
+            if key == 'Reputation' and value == 'false':
+                update = 'UPDATE "ChannelSettings" set "Reputation" = False WHERE "ChannelID" = %s'
+            if key == 'Welcome' and value == 'true':
+                update = 'UPDATE "ChannelSettings" set "Welcome" = True WHERE "ChannelID" = %s'
+            if key == 'Welcome' and value == 'false':
+                update = 'UPDATE "ChannelSettings" set "Welcome" = False WHERE "ChannelID" = %s'
+            if key == 'WelcomeText' and value is not None:
+                update = 'UPDATE "ChannelSettings" set "WelcomeText" = '+str(value)+' WHERE "ChannelID" = %s'
+            if key == 'Left' and value == 'true':
+                update = 'UPDATE "ChannelSettings" set "Left" = True WHERE "ChannelID" = %s'
+            if key == 'Left' and value == 'false':
+                update = 'UPDATE "ChannelSettings" set "Left" = False WHERE "ChannelID" = %s'
+            if key == 'LeftText' and value is not None:
+                update = 'UPDATE "ChannelSettings" set "LeftText" = '+str(value)+' WHERE "ChannelID" = %s'
+            cur = con.cursor()
+            updateparam = (str(channelid),)
+            cur.execute(update,updateparam)
+            con.commit()
+            await loadSettings()
+
+async def loadSettings():
+    con = await getDbCon()
+    select = 'SELECT * FROM "ChannelSettings"'
+    cur = con.cursor(cursor_factory=RealDictCursor)
+    cur.execute(select)
+    allSettings = cur.fetchall()
+    global settings
+    settings = json.dumps(allSettings)
+    return settings
+
+async def AddUser(channelid,userid,firstname):
+    #if con is None or con.closed == 0:
+    #    con = await getDbCon()
+    if channelid is not None and userid is not None:
+        con = await getDbCon()
+        select = 'SELECT "ChannelID","UserID" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s'
+        selectparam = (str(channelid),str(userid),)
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        uid = cur.fetchone()
+        if uid is None:
+            insert = 'INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName") VALUES (%s,%s,%s,%s,%s)'
+            insertparam = (str(channelid),str(userid),0,0,firstname)
+            cur = con.cursor()
+            cur.execute(insert,insertparam)
+            con.commit()
+
+async def updateMessageCount(channelid,userid,count):
+    #if con is None or con.closed == 0:
+    #    con = await getDbCon()
+    if channelid is not None and userid is not None:
+        con = await getDbCon()
+        userEntity = await client.get_entity(userid)
+        firstname = userEntity.first_name
+        await AddUser(channelid,userid,firstname)
+        update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID" = %s and "UserID" = %s'
+        updateparam = (count,str(channelid),str(userid))
+        cur = con.cursor()
+        cur.execute(update,updateparam)
+        con.commit()
+
+async def getUserStats(channelid,userid):
+    #if con is None or con.closed == 0:
+    #    con = await getDbCon()
+    if channelid is not None and userid is not None:
+        con = await getDbCon()
+        select = 'SELECT "TotalMessages","TotalReputation" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s'
+        selectparam = (str(channelid),str(userid))
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        stats = cur.fetchone()
+        return stats
+
+async def updateRep(channelid,userid,rep):
+    #if con is None or con.closed == 0:
+    #    con = await getDbCon()
+    if channelid is not None and userid is not None:
+        con = await getDbCon()
+        update = 'UPDATE "UserDetails" set "TotalReputation" = %s WHERE "ChannelID" = %s and "UserID" = %s'
+        updateparam = (rep,str(channelid),str(userid))
+        cur = con.cursor()
+        cur.execute(update,updateparam)
+        con.commit()
+
+async def getTriviaCategory():
+    s=""
+    for key in triviaCategory.keys():
+        s += key + "\n"
+    return s
 
 async def deleteCommandMessage(channelid,msgid):
     try:
@@ -79,21 +270,15 @@ async def deleteCommandMessage(channelid,msgid):
     except Exception as e:
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-async def getAllRep(channelid):
-    try:
-        allData = sheet.get_all_records()
-        sorted_data = sorted(allData, key = lambda i: i['Reputation'],reverse=True)
-        newData = []
-        strData = ""
-        for data in sorted_data:
-            if data['ChannelId'] == channelid:
-                newData.append(data)        
-        if newData is not None:
-            for data in newData:
-                strData = strData + "@" + data["Username"] + " (" + str(data["Reputation"]) + ")\n"
-        return strData
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+async def getTopRep(channelid):
+    if channelid is not None:
+        con = await getDbCon()
+        select = 'SELECT "TotalReputation","FirstName" FROM "UserDetails" WHERE "ChannelID" = %s'
+        selectparam = (str(channelid),)
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        reps = cur.fetchall()
+        return reps
 
 async def getNews(term):
     try:
@@ -109,78 +294,7 @@ async def getNews(term):
             return rs
     except Exception as e:
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-    
-
-
-async def findValueFromSheet(username,channelid):
-    try:
-        allData = sheet.get_all_records()
-        for row in allData:
-            #column index [1-username,2-reputation,3-channelid]
-            key_list = list(allData)
-            row_index = key_list.index(row) + 2
-            col_index = 2
-            if username == row['Username'] and channelid == row['ChannelId']:
-                existing_rep = row['Reputation']
-                totalMessages = row['TotalMessages']
-                row_index = key_list.index(row) + 2
-                col_index = 2
-                data = [row_index,col_index,existing_rep,totalMessages]
-                return data
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-    
-
-async def updateSheetValue(row_index,col_index,existing_rep,opr):
-    try:
-        if 'add' in opr:
-            sheet.update_cell(row_index,col_index,existing_rep + 1)
-
-        if 'sub' in opr:
-            sheet.update_cell(row_index,col_index,existing_rep - 1)
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-
-async def updateMessagesTotal(row_index,col_index,username,channelid):
-    try:
-        allData = sheet.get_all_records()
-        key_list = list(allData)
-        for row in allData:
-            if username == row['Username'] and channelid == row['ChannelId']:
-                existing_count = row['TotalMessages']
-                existing_count = existing_count + 1
-                if existing_count is None:
-                    sheet.update_cell(row_index,4,existing_count)
-                else:
-                    sheet.update_cell(row_index,4,(existing_count + 1))
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)  
-
-async def appendSheetData(username,rep,channelid):
-    try:
-        data = [username,rep,channelid]
-        sheet.append_row(data,value_input_option='USER_ENTERED')
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-
-async def defaultAppendSheetData(username,rep,channelid):
-    try:
-        data = [username,rep,channelid,1]
-        sheet.append_row(data,value_input_option='USER_ENTERED')
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-
-async def getLatestRepFromSheet(username,channelid):
-    try:
-        allData = sheet.get_all_records()
-        key_list = list(allData)
-        for row in allData:
-            if username == row['Username'] and channelid == row['ChannelId']:
-                existing_rep = row['Reputation']
-                return str(existing_rep)
-    except Exception as e:
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-    
+        
 async def get_soup(url,header):
     return BeautifulSoup(urllib2.urlopen(urllib2.Request(url,headers=header)),'html.parser')
 
@@ -188,7 +302,6 @@ async def get_meaning(word):
     dictionary = PyDictionary(word)
     info = dictionary.meaning(str(word))
     return info
-
 
 async def eventData(event):
     replytomsgid = event.message.reply_to_msg_id
@@ -229,231 +342,1146 @@ async def eventData(event):
         eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName,fromUserFirstName,fromUserLastName,toUserFirstName,toUserLastName,toUserId]
         return eventDataList
         
+async def saveMessageIDs(messageid,channelid):
+    if messageid is not None:
+            insert = 'INSERT INTO "Messages" ("MessageID","ChannelID") VALUES (%s,%s)'
+            insertparam = (str(messageid),str(channelid),)
+            cur = con.cursor()
+            cur.execute(insert,insertparam)
+            con.commit()
+
+async def deleteMessagesFromDB(channelid):
+    if channelid is not None:
+            delete = 'DELETE FROM "Messages" WHERE "ChannelID" = %s'
+            deleteparam = (str(channelid),)
+            cur = con.cursor()
+            cur.execute(delete,deleteparam)
+            con.commit()
+
+
+async def getMessageIDs(channelid):
+    if channelid is not None:
+        con = await getDbCon()
+        select = 'SELECT "MessageID","ChannelID" FROM "Messages" WHERE "ChannelID" = %s'
+        selectparam = (str(channelid),)
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        reps = cur.fetchall()
+        return reps
+
 @client.on(events.NewMessage)
 async def my_event_handler(event):
-    eventDta = await eventData(event)
-    fromUserId = eventDta[0]
-    fromUserEntity = eventDta[1]
-    fromUserName = eventDta[2]
-    channelId = eventDta[3]
-    channelEntity = eventDta[4]
-    msgSearch = eventDta[5]
-    toUserEntity = eventDta[6]
-    toUserName = eventDta[7]
-    fromUserFirstName = eventDta[8]
-    fromUserLastName = eventDta[9]
-    toUserFirstName = eventDta[10]
-    toUserLastName = eventDta[11]
-    toUserId = eventDta[12]
-    participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
-    isadmin = (type(participant.participant) == ChannelParticipantAdmin)
-    iscreator = (type(participant.participant) == ChannelParticipantCreator)
-    data = await findValueFromSheet(fromUserName,channelId)
-    if data is not None:
-        try:
-            await updateMessagesTotal(data[0],data[1],fromUserName,channelId)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-    else:
-        try:
-            await defaultAppendSheetData(fromUserName,0,channelId)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+    try:
+        myID = 1318065263
+        channelId = event.message.to_id.channel_id
+        msgid = event.message.id
+        await saveMessageIDs(msgid,channelId)
+        replytomsgid = event.message.reply_to_msg_id
+        msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+        toUserEntity = await client.get_entity(msgSearch.from_id)
+        toUserId = toUserEntity.id
+        con = await getDbCon()
+        eventDta = await eventData(event)
+        channelId = eventDta[3]
+        channelEntity = eventDta[4]
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        repEnabled = True
+        profanityEnabled = False
+        aichatEnabled = False
+        welcomeEnabled = False
+        leftEnabled = False
+        if settings.count == 0:
+            await loadSettings()
+            allsettings = json.loads(settings)
+            for setting in allsettings:
+                if setting["ChannelID"] == str(channelId):
+                    if setting["Reputation"] == True:
+                        repEnabled = True
+                    else:
+                        repEnabled = False
+                    if setting["Profanity"] == True:
+                        profanityEnabled = True
+                    else:
+                        profanityEnabled = False
+                    if setting["AIChat"] == True:
+                        aichatEnabled = True
+                    else:
+                        aichatEnabled = False
+                    if setting["Welcome"] == True:
+                        welcomeEnabled = True
+                    else:
+                        welcomeEnabled = False
+                    if setting["Left"] == True:
+                        leftEnabled = True
+                    else:
+                        leftEnabled = False
+                    if setting["Active"] == True:
+                        isActive = True
+                    else:
+                        isActive = False
 
-    if 'trep' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower() and len(event.raw_text) == 4:
-        try:
-            data = await getAllRep(channelId)
-            if data is not None:
-                await event.reply(data)
-            await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-
-    if 'troast' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:
-            mention = event.message.message
-            if '@' in mention:
-                mention = mention.split("@")[1]
-                mention.replace('@','')
-                if mention is not None and mention != '':
-                    await event.reply('@' + mention + " " + random.choice(roast))
-                else:
-                    await event.reply(random.choice(roast))
-            else:
-                await event.reply(random.choice(roast))
-            await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-    
-    if 'tlangcodes' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:
-            s = googletrans.LANGUAGES
-            listToStr = json.dumps(s)
-            res = '\n'.join('{!r}: {!r},'.format(k, v) for k, v in s.items())
-            await event.reply(res.rstrip(','))
-            await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-
-    if 'ttranslate' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:
-            cmd = event.raw_text.lower()
-            to_lang = cmd.replace('ttranslate ','').split(' ')[0]
-            if to_lang is not None and 'ttranslate' not in to_lang and to_lang in googletrans.LANGCODES.values():
-                term = cmd.replace('ttranslate ','').replace(to_lang + ' ','')
-                if term is not None:
-                    translator = Translator()
-                    translation = translator.translate(term,dest=to_lang)
-                    await event.reply(translation.text)
-                else:
-                    await event.reply('Provide data to translate!\n Example: ttranslate en gracias')
-            else:
-                term = cmd.replace('ttranslate ','').replace(to_lang + ' ','')
-                translator = Translator()
-                translation = translator.translate(term,dest='en')
-                await event.reply(translation.text)
-            await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-    
-    if '++' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower() and len(event.raw_text) == 2:
-        try:
-            if fromUserName == toUserName:
-                    await event.reply('You cannot give Like to yourself !')
-            elif fromUserName is None:
-                await event.reply('Sorry! You need to set your username to receive Likes.')
-            elif toUserName is None:
-                await event.reply('Sorry! The user needs to set their username to receive Likes.')
-            else:
-                data = await findValueFromSheet(toUserName,channelId)
-                if data is None and toUserName is not None:
-                    await appendSheetData(toUserName,1,channelId)
-                else:
-                    await updateSheetValue(data[0],data[1],data[2],'add')
-                    lrep = await getLatestRepFromSheet(toUserName,channelId)
-                    await event.reply(random.choice(happy_words) + '! ' + '@' + fromUserName + ' liked post of @' + toUserName + ' . Total Likes : ' + lrep)
-            await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
+        if profanityEnabled:
+                if profanity.contains_profanity(event.raw_text.lower()):
+                    await client(functions.channels.DeleteMessagesRequest(
+                        channel=channelEntity,
+                        id=[event.message.id]
+                    ))
+                    await client.send_message(channelId,message="Message was deleted because of profanity!")
             
-    if '--' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower() and len(event.raw_text) == 2:
+        if event.raw_text.lower() == '.translate' or '.translate' in event.raw_text.lower():
+                try:
+                    cmd = event.raw_text.lower()
+                    to_lang = cmd.replace('.translate ','').split(' ')[0]
+                    if to_lang is not None and '.translate' not in to_lang and to_lang in googletrans.LANGCODES.values():
+                        term = cmd.replace('.translate ','').replace(to_lang,'',1)
+                        if term is not None:
+                            translator = Translator()
+                            translation = translator.translate(term,dest=to_lang)
+                            await event.reply(translation.text)
+                        else:
+                            await event.reply('Provide data to translate!\n Example: .translate en gracias')
+                    else:
+                        term = cmd.replace('.translate ','').replace(to_lang + ' ','')
+                        translator = Translator()
+                        translation = translator.translate(term,dest='en')
+                        await event.reply(translation.text)
+                except Exception as e:
+                    print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                    await deleteCommandMessage(channelId,event.message.id)
+
+        if toUserId == myID:
+            bot_response = kernel.respond(event.raw_text.lower())
+            await event.reply(bot_response)
+    
+    except Exception as e:
+        pass
+
+@client.on(events.ChatAction)
+async def chat_action_handler(event):
+    try:
+        channelId = event.chat.id
+        welcomeEnabled = False
+        leftEnabled = False
+        welcomeText = ""
+        leftText = ""
+        print(event)
+        userEntity = await client.get_entity(event.user_id)
+        await loadSettings()
+        if len(settings) != 0:
+            allsettings = json.loads(settings)
+            for setting in allsettings:
+                if setting["ChannelID"] == str(channelId):
+                    if setting["Welcome"] == True:
+                        welcomeEnabled = True
+                        if setting["WelcomeText"] is None:
+                            welcomeText = userEntity.first_name + " joined the group."
+                        else:
+                            welcomeText = setting["WelcomeText"]
+                    else:
+                        welcomeEnabled = False
+                    if setting["Left"] == True:
+                        leftEnabled = True
+                        if setting["LeftText"] is None:
+                            leftText = userEntity.first_name + " left the group."
+                        else:
+                            leftText = setting["LeftText"]
+                    else:
+                        leftEnabled = False
+
+        if (event.user_joined or event.user_added) and welcomeEnabled:
+            if "{firstname}" in welcomeText:
+                welcomeText = welcomeText.replace("{firstname}",str(userEntity.first_name))
+            if "{username}" in welcomeText:
+                welcomeText = welcomeText.replace("{username}",str(userEntity.username))
+            await event.reply(welcomeText)
+
+        if (event.user_left or event.user_kicked) and leftEnabled:
+            if "{firstname}" in leftText:
+                welcomeText = leftText.replace("{firstname}",str(userEntity.first_name))
+            if "{username}" in leftText:
+                welcomeText = leftText.replace("{username}",str(userEntity.username))
+            await event.reply(leftText)
+    except Exception as e:
+        pass
+
+@client.on(events.NewMessage(pattern=r'^\.langcodes$'))
+async def langcodes(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        s = googletrans.LANGUAGES
+        listToStr = json.dumps(s)
+        res = '\n'.join('{!r}: {!r},'.format(k, v) for k, v in s.items())
+        await event.reply(res.rstrip(','))
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\++$'))
+async def increaseRep(event):
+    replytomsgid = event.message.reply_to_msg_id
+    if replytomsgid is not None:
         try:
+            con = await getDbCon()
+            while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+            fromUserId = event.from_id
+            fromUserEntity = await client.get_entity(fromUserId)
+            fromUserName = fromUserEntity.username
+            fromUserFirstName = fromUserEntity.first_name
+            channelId = event.message.to_id.channel_id
+            channelEntity = await client.get_entity(channelId)
+            msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+            toUserEntity = await client.get_entity(msgSearch.from_id)
+            toUserId = toUserEntity.id
+            toUserName = toUserEntity.username
+            toUserFirstName = toUserEntity.first_name
+            toUserLastName = toUserEntity.last_name
+            count = await getUserStats(channelId,fromUserId)
+            countMessage = count[0] + 1
+            await updateMessageCount(channelId,fromUserId,countMessage)
+            allsettings = json.loads(await loadSettings())
+            for setting in allsettings:
+                if setting["ChannelID"] == str(channelId):
+                    if setting["Reputation"] == True:
+                        repEnabled = True
+                    else:
+                        repEnabled = False
+
             if fromUserName == toUserName:
-                await event.reply('You cannot give Like to yourself !')
-            elif fromUserName is None:
-                await event.reply('Sorry! You need to set your username to receive Likes.')
-            elif toUserName is None:
-                await event.reply('Sorry! The user needs to set their username to receive Likes.')
+                    await event.reply('Nice Try, But NO ! You cannot give reputation to yourself !')
             else:
-                data = await findValueFromSheet(toUserName,channelId)
-                if data is None and toUserName is not None:
-                    await appendSheetData(toUserName,1,channelId)
-                else:
-                    await updateSheetValue(data[0],data[1],data[2],'sub')
-                    lrep = await getLatestRepFromSheet(toUserName,channelId)
-                    await event.reply(random.choice(sad_words) + '! ' + '@' + fromUserName + ' disliked post of @' + toUserName + ' . Total Likes : ' + lrep)    
-            await deleteCommandMessage(channelId,event.message.id)
+                if repEnabled == True:
+                    countRep = count[1] + 1
+                    await updateRep(channelId,fromUserId,countRep)
+                    await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
         except Exception as e:
+            await event.reply("Something went wrong!")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             await deleteCommandMessage(channelId,event.message.id)
 
-    if 'tjoke' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
+@client.on(events.NewMessage(pattern=r'^\--$'))
+async def decreaseRep(event):
+    replytomsgid = event.message.reply_to_msg_id
+    if replytomsgid is not None:
         try:
-            await event.reply(dadjoke.joke)
-            await deleteCommandMessage(channelId,event.message.id)
+            con = await getDbCon()
+            while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+            fromUserId = event.from_id
+            fromUserEntity = await client.get_entity(fromUserId)
+            fromUserName = fromUserEntity.username
+            fromUserFirstName = fromUserEntity.first_name
+            fromUserLastName = fromUserEntity.last_name
+            channelId = event.message.to_id.channel_id
+            channelEntity = await client.get_entity(channelId)
+            msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+            toUserEntity = await client.get_entity(msgSearch.from_id)
+            toUserId = toUserEntity.id
+            toUserName = toUserEntity.username
+            toUserFirstName = toUserEntity.first_name
+            count = await getUserStats(channelId,fromUserId)
+            count = count[0] + 1
+            await updateMessageCount(channelId,fromUserId,count)            
+            allsettings = json.loads(await loadSettings())
+            for setting in allsettings:
+                if setting["ChannelID"] == str(channelId):
+                    if setting["Reputation"] == True:
+                        repEnabled = True
+                    else:
+                        repEnabled = False
+
+            if fromUserName == toUserName:
+                    await event.reply('Nice Try, But NO ! You cannot give reputation to yourself !')
+            else:
+                if repEnabled == True:
+                    count = await getUserStats(channelId,fromUserId)
+                    count = count[1] - 1
+                    await updateMessageCount(channelId,fromUserId,count)
+                    await updateRep(channelId,fromUserId,count)
+                    await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
         except Exception as e:
+            await event.reply("Something went wrong!")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
             await deleteCommandMessage(channelId,event.message.id)
 
-    if 'tnews' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
+@client.on(events.NewMessage(pattern=r'^\.news [a-zA-Z]'))
+async def getNewsData(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
         command = event.raw_text.lower()
-        term = command.replace('tnews ','')
-        result = await getNews(term)
-        if result is not None:
-            strg = result['title'] + '\nSource : ' + result['media'] + '\nLink : ' + result['link'] + '\nDesctiption : ' + result['desc']
+        term = command.replace('.news ','')
+        newsData = await getNews(term)
+        if newsData is not None:
+            strg = newsData['title'] + '\nSource : ' + newsData['media'] + '\nLink : ' + newsData['link'] + '\nDesctiption : ' + newsData['desc']
             await event.reply(strg)
         else:
             await event.reply('Search topic was not provided or could not fetch news.')
+    except Exception as e:
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         await deleteCommandMessage(channelId,event.message.id)
 
-    if 'twhat' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:            
-            search = event.raw_text.lower().replace('twhat ','')
-            if search is not None and 'twhat' not in search.lower():
-                info = await get_meaning(search)
-                if info is not None:
-                    mean = 'Noun : ' + info['Noun'][0] + '\n\nVerb : ' + info['Verb'][0]
-                    print(mean)
-                    await event.reply(mean)
-            else:
-                await event.reply('Provide word to find the meaning !\n Example: twhat happy')
-            await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-                await event.reply('Try another word.')
+@client.on(events.NewMessage(pattern=r'^\.what$'))
+async def getMeaning(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        search = event.raw_text.lower().replace('.what ','')
+        if search is not None and '.what' not in search.lower():
+            url = "https://www.vocabulary.com/dictionary/" + search + ""
+            htmlfile = urllib2.urlopen(url)
+            soup = BeautifulSoup(htmlfile, 'html.parser')
+            soup1 = soup.find(class_="short")
+            try:
+                soup1 = soup1.get_text()
+            except AttributeError:
+                soup1 = 'Cannot find such word! Check spelling.'
+        await event.reply(soup1)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.cmd$'))
+async def getCommands(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        await event.reply(cmds)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.m$'))
+async def mute(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        replytomsgid = event.message.reply_to_msg_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+        channelEntity = await client.get_entity(channelId)
+        toUserEntity = await client.get_entity(msgSearch.from_id)
+        toUserId = toUserEntity.id
+        toUserName = toUserEntity.username
+        toUserFirstName = toUserEntity.first_name
+        if isadmin or iscreator:
+            await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=60),send_messages=False)
+            await event.reply(toUserFirstName + ', you are muted upto 1 hour for not following rules!.')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.um$'))
+async def unmute(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        replytomsgid = event.message.reply_to_msg_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+        channelEntity = await client.get_entity(channelId)
+        toUserEntity = await client.get_entity(msgSearch.from_id)
+        toUserId = toUserEntity.id
+        toUserName = toUserEntity.username
+        toUserFirstName = toUserEntity.first_name
+        if isadmin or iscreator:
+            await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),send_messages=True)
+            await event.reply(toUserFirstName + ', you are unmuted!.')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.b$'))
+async def ban(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        replytomsgid = event.message.reply_to_msg_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+        channelEntity = await client.get_entity(channelId)
+        toUserEntity = await client.get_entity(msgSearch.from_id)
+        toUserId = toUserEntity.id
+        toUserName = toUserEntity.username
+        toUserFirstName = toUserEntity.first_name
+        if isadmin or iscreator:
+            await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),view_messages=False)
+            await event.reply(toUserFirstName + ', you are banned!.')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.ub$'))
+async def unban(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        replytomsgid = event.message.reply_to_msg_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+        channelEntity = await client.get_entity(channelId)
+        toUserEntity = await client.get_entity(msgSearch.from_id)
+        toUserId = toUserEntity.id
+        toUserName = toUserEntity.username
+        toUserFirstName = toUserEntity.first_name
+        if isadmin or iscreator:
+            await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),view_messages=True)
+            await event.reply(toUserFirstName + ', you are unbanned!.')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+    
+@client.on(events.NewMessage(pattern=r'^\.stat$'))
+async def getUserStat(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        data = await getUserStats(channelId,fromUserId)
+        if data is not None:
+            s = "Total Messages : "+str(int(data[0]))+" \nTotal Reputation : " + str(data[1])
+            await event.reply(s)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.joke$'))
+async def getJoke(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = "https://v2.jokeapi.dev/joke/Any";
+        data = requests.get(url = URL)
+        data = data.json()
+        joke = data['setup'] + '\n' + data['delivery'] + '\n\n\n' + 'Jokes are generated randomly.Dont get emotional! :v:'
+        joke = emoji.emojize(joke, use_aliases=True)
+        await event.reply(joke)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.yomama$'))
+async def getYomama(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = "https://api.yomomma.info/"
+        data = requests.get(url = URL)
+        yomama = data.json()
+        await event.reply(yomama['joke'])
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.loc$'))
+async def getLocation(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = "https://freegeoip.app/json/";
+        data = requests.get(url = URL)
+        loc = data.json()
+        locData = loc['country_name'] + "-" + loc['region_name'] + "-" + loc['city']
+        await event.reply(locData)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.quote$'))
+async def getQuote(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = "https://api.forismatic.com/api/1.0/?method=getQuote&lang=en&format=jsonp&jsonp=?"
+        data = requests.get(url = URL)
+        response = data.text[1:]
+        qData = json.loads(response.replace("(","").replace(")",""))
+        await event.reply(qData['quoteText'] + '\n\n' + 'By - ' + qData['quoteAuthor'])
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.bored$'))
+async def getActivity(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = "https://www.boredapi.com/api/activity"
+        data = requests.get(url = URL)
+        activity = data.json()
+        activityData = activity['activity']
+        await event.reply(activityData)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.insult$'))
+async def getInsulted(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = "https://evilinsult.com/generate_insult.php?lang=en&type=json"
+        data = requests.get(url = URL)
+        insult = data.json()
+        insultData = insult['insult']
+        await event.reply(insultData)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.advice$'))
+async def getAdvice(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = "https://api.adviceslip.com/advice"
+        data = requests.get(url = URL)
+        advice = data.json()
+        adviceData = advice['slip']['advice']
+        await event.reply(adviceData)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.dadjoke$'))
+async def getDadJoke(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = "https://icanhazdadjoke.com/"
+        htmlfile = requests.get(url = URL)
+        soup = BeautifulSoup(htmlfile.text, 'html.parser')
+        soup1 = soup.find('p', attrs={'class' : 'subtitle'})
+        await event.reply(soup1.get_text())
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.ping$'))
+async def getPing(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        m = await event.respond('!pong')
+        await time.sleep(3)
+        await client.delete_messages(event.chat_id, [event.id, m.id])
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.startbot$'))
+async def startBot(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        await event.reply('Wait!')
+        await deleteCommandMessage(channelId,event.message.id)
+        await AddClient(channelEntity)
+        await event.reply('Working now!')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.reputation (?i)(true|false)$'))
+async def updateReputationSettings(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if event.raw_text.lower() == '.reputation true' and (isadmin or iscreator):
+            try:
+                await deleteCommandMessage(channelId,event.message.id)
+                await UpdateClientSettings(channelId,"Reputation","true")
+                await event.reply('Settings Updated!')
+            except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 await deleteCommandMessage(channelId,event.message.id)
 
-    if 'tcommands' in event.raw_text.lower() and len(event.raw_text.lower()) == 9:
-        try:
-            await event.reply(commands)
-            await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-
-    if 'tm' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:
-            if isadmin or iscreator:
-                    await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=180),send_messages=False)
-                    await event.reply('@' + toUserName + ' you are muted by @' + fromUserName + ' upto 3 hours for bullshitting.')
-                    await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-
-    if 'tum' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:
-            if isadmin or iscreator:
-                    await client.edit_permissions(channelEntity, toUserEntity,timedelta(minutes=0), send_messages=True)
-                    await event.reply('@' + toUserName + ' you are unmuted by @' + fromUserName + ' . Now you can speak again.')
-                    await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-
-    if 'tb' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:
-            if isadmin or iscreator:
-                    await client.edit_permissions(channelEntity, toUserEntity,timedelta(minutes=0), view_messages=False)
-                    await event.reply('@' + toUserName + ' you are banned by @' + fromUserName + ' . Get Lost Bitch!')
-                    await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-
-    if 'tub' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:
-            if isadmin or iscreator:
-                    await client.edit_permissions(channelEntity, toUserEntity,timedelta(minutes=0), view_messages=True)
-                    await event.reply('@' + toUserName + ' you are unbanned by @' + fromUserName + ' . You can join again!')
-                    await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
-
-    if 'tstat' in event.raw_text.lower() and 'tcommands' not in event.raw_text.lower():
-        try:
-            data = await findValueFromSheet(fromUserName,channelId)
-            if data is not None:
-                await event.reply('@' + fromUserName + '\n\n' + 'Total Messages : ' + f'{data[3]}' + '\nTotal Reputation : ' + f'{data[1]}')
+        if event.raw_text.lower() == '.reputation false' and (isadmin or iscreator):
+            try:
                 await deleteCommandMessage(channelId,event.message.id)
-        except Exception as e:
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                await UpdateClientSettings(channelId,"Reputation","false")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                await deleteCommandMessage(channelId,event.message.id)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.profanity (?i)(true|false)$'))
+async def updateProfanitySettings(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if event.raw_text.lower() == '.profanity true' and (isadmin or iscreator):
+            try:
+                await deleteCommandMessage(channelId,event.message.id)
+                await UpdateClientSettings(channelId,"Profanity","true")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                await deleteCommandMessage(channelId,event.message.id)
+
+        if event.raw_text.lower() == '.profanity false' and (isadmin or iscreator):
+            try:
+                await deleteCommandMessage(channelId,event.message.id)
+                await UpdateClientSettings(channelId,"Profanity","false")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                await deleteCommandMessage(channelId,event.message.id)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.welcome (?i)(true|false)$'))
+async def updateWelcomeSettings(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if event.raw_text.lower() == '.welcome true' and (isadmin or iscreator):
+            try:
+                await deleteCommandMessage(channelId,event.message.id)
+                await UpdateClientSettings(channelId,"Welcome","true")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                await deleteCommandMessage(channelId,event.message.id)
+
+        if event.raw_text.lower() == '.welcome false' and (isadmin or iscreator):
+            try:
+                await deleteCommandMessage(channelId,event.message.id)
+                await UpdateClientSettings(channelId,"Welcome","false")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                await deleteCommandMessage(channelId,event.message.id)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.left (?i)(true|false)$'))
+async def updateLeftSettings(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if event.raw_text.lower() == '.left true' and (isadmin or iscreator):
+            try:
+                await deleteCommandMessage(channelId,event.message.id)
+                await UpdateClientSettings(channelId,"Left","true")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                await deleteCommandMessage(channelId,event.message.id)
+
+        if event.raw_text.lower() == '.welcome false' and (isadmin or iscreator):
+            try:
+                await deleteCommandMessage(channelId,event.message.id)
+                await UpdateClientSettings(channelId,"Left","false")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                await deleteCommandMessage(channelId,event.message.id)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.welcometext [a-zA-Z]$'))
+async def updateWelcomeText(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
             await deleteCommandMessage(channelId,event.message.id)
-            
+            text = event.raw_text.lower().replace(".welcometext","",1)
+            if text is not None:
+                await UpdateClientSettings(channelId,"WelcomeText",text)
+                await event.reply('Settings Updated!')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.lefttext [a-zA-Z]$'))
+async def updateLeftText(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            await deleteCommandMessage(channelId,event.message.id)
+            text = event.raw_text.lower().replace(".lefttext","",1)
+            if text is not None:
+                await UpdateClientSettings(channelId,"LeftText",text)
+                await event.reply('Settings Updated!')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.profaneadd [a-zA-Z]$'))
+async def addProfaneWord(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            word = event.raw_text.lower().replace('.profaneadd')
+            profanity.add_censor_words(word)
+            await event.reply('Word Added!')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.art$'))
+async def getArt(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        await event.reply("Wait ! Let me find art for you.")
+        header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
+        #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
+        url = "https://unsplash.com/s/photos/art"
+        response = requests.get(url,headers=header)
+        soup = BeautifulSoup(response.content,"html.parser")
+        soup1 = soup.find_all("img")
+        if len(soup1) > 0:
+            imgsrc = random.choice(soup1)
+            image = Image.open(BytesIO(requests.get(imgsrc['src']).content))
+            image.save("art.png")
+            imgbyte = image_to_byte_array(image)
+            try:
+                await client.send_file(channelId,imgbyte,force_document=False,caption=imgsrc["alt"])
+            except Exception as e:
+                print(e)
+                await event.reply("Oh snap! Try again later.")
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.trv$'))
+async def getArt(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        URL = triviaUrl
+        data = requests.get(url = URL)
+        trivia = json.loads(data.text)
+        results = trivia.get('results')
+        category = results[0]['category']
+        difficulty = results[0]['difficulty']
+        question_data = html.unescape( "Category : " + category + "\n" + "Difficulty : " + difficulty + "\n" + results[0]['question'])
+        correct_answer = results[0]['correct_answer']
+        incorrect_answer = results[0]['incorrect_answers']
+        incorrect_answer.append(correct_answer)
+        correct_answer_id = incorrect_answer.index(correct_answer)
+        await client.send_message(channelId,file=InputMediaPoll(
+            poll=Poll(
+                id=53453159,
+                question=question_data,
+                answers=[PollAnswer(incorrect_answer[0], b'0'), PollAnswer(incorrect_answer[1], b'1'), PollAnswer(incorrect_answer[2], b'2'), PollAnswer(incorrect_answer[3], b'3')],
+                closed=None,quiz=True,multiple_choice=None,public_voters=True
+            ),correct_answers=str(correct_answer_id)
+        ))
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.toprep$'))
+async def topRep(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        reps = await getTopRep(channelId)
+        s=""
+        for rep in reps:
+            s += rep[1] + "(" + str(rep[0]) + ")"
+        await event.reply(s)
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
+@client.on(events.NewMessage(pattern=r'^\.clean$'))
+async def clean(event):
+    try:
+        con = await getDbCon()
+        while con is None:
+                try:
+                    con = await getDbCon()
+                except psycopg2.OperationalError:
+                    continue
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        count = await getUserStats(channelId,fromUserId)
+        count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+        await deleteCommandMessage(channelId,event.message.id)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            messages = await getMessageIDs(channelId)
+            for message in messages:
+                await client.delete_messages(channelId,[str(message[0])])
+            await deleteMessagesFromDB(channelId)
+            await event.reply('Cleaned!')
+    except Exception as e:
+        await event.reply("Something went wrong!")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+        await deleteCommandMessage(channelId,event.message.id)
+
 client.run_until_disconnected()
