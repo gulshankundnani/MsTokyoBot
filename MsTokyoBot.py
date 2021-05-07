@@ -377,9 +377,11 @@ async def my_event_handler(event):
         msgid = event.message.id
         await saveMessageIDs(msgid,channelId)
         replytomsgid = event.message.reply_to_msg_id
-        msgSearch = await client.get_messages(channelId, ids=replytomsgid)
-        toUserEntity = await client.get_entity(msgSearch.from_id)
-        toUserId = toUserEntity.id
+        toUserId = None
+        if replytomsgid is not None:
+            msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+            toUserEntity = await client.get_entity(msgSearch.from_id)
+            toUserId = toUserEntity.id
         con = await getDbCon()
         eventDta = await eventData(event)
         channelId = eventDta[3]
@@ -1078,7 +1080,7 @@ async def getPing(event):
         count = count[0] + 1
         await updateMessageCount(channelId,fromUserId,count)
         m = await event.respond('!pong')
-        await time.sleep(3)
+        time.sleep(10)
         await client.delete_messages(event.chat_id, [event.id, m.id])
     except Exception as e:
         await event.reply("Something went wrong!")
