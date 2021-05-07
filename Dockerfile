@@ -2,6 +2,8 @@
 FROM python
 
 RUN apt-get update
+RUN apt install git
+RUN git clone git@github.com:gulshankundnani/gulshankundnani.git
 # run this before copying requirements for cache efficiency
 RUN pip install --upgrade pip
 #set work directory early so remaining paths can be relative
