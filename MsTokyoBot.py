@@ -49,6 +49,23 @@ import base64
 con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 s = sched.scheduler(time.time, time.sleep)
 
+
+def createQueries():
+    queries = []
+    queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelDetails"("ChannelId" text,"ChannelTitle" text,"ChannelUsername" text,"AccessHash" text,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelDetails" OWNER to postgres; """)
+    queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
+    queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
+    queries.append(""" CREATE TABLE IF NOT EXISTS "Messages"("ChannelID" text,"MessageID" text) WITH (OIDS = FALSE); ALTER TABLE "Messages" OWNER to postgres; """)
+    cur = con.cursor()
+    for query in queries:
+        cur.execute(query)
+        con.commit()
+        time.sleep(5)
+
+print('Started')
+createQueries()
+print('Exited')
+
 async def getDbCon():
     #conn = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
     return con
@@ -393,6 +410,14 @@ async def my_event_handler(event):
         aichatEnabled = False
         welcomeEnabled = False
         leftEnabled = False
+        fromUserId = event.from_id
+        count = await getUserStats(channelId,fromUserId)
+        if count is None:
+            count = 1
+        else:
+            count = count[0] + 1
+        await updateMessageCount(channelId,fromUserId,count)
+
         if settings.count == 0:
             await loadSettings()
             allsettings = json.loads(settings)
@@ -450,12 +475,112 @@ async def my_event_handler(event):
                         await event.reply(translation.text)
                 except Exception as e:
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                    await deleteCommandMessage(channelId,event.message.id)
 
-            
+        if toUserId is not None and toUserId == myID:
+            bot_response = kernel.respond(event.raw_text.lower())
+            await event.reply(bot_response)
+
+        #if event.raw_text.lower() == ".langcodes":
+        #    await langcodes(event)
+
+        #if event.raw_text.lower() == "++":
+        #    await increaseRep(event)
+
+        #if event.raw_text.lower() == "--":
+        #    await decreaseRep(event)
+
+        #if event.raw_text.lower().startswith('.news'):
+        #    await getNewsData(event)
+
+        #if event.raw_text.lower().startswith('.what'):
+        #    await getMeaning(event)
+
+        #if event.raw_text.lower() == '.cmd':
+        #    await getCommands(event)
+
+        #if event.raw_text.lower() == '.m':
+        #    await mute(event)
+
+        #if event.raw_text.lower() == '.um':
+        #    await unmute(event)
+
+        #if event.raw_text.lower() == '.b':
+        #    await ban(event)
+
+        #if event.raw_text.lower() == '.ub':
+        #    await unban(event)
+
+        #if event.raw_text.lower() == '.stat':
+        #    await getUserStat(event)
+
+        #if event.raw_text.lower() == '.joke':
+        #    await getJoke(event)
+
+        #if event.raw_text.lower() == '.yomama':
+        #    await getYomama(event)
+
+        #if event.raw_text.lower() == '.loc':
+        #    await getLocation(event)
+
+        #if event.raw_text.lower() == '.quote':
+        #    await getQuote(event)
+
+        #if event.raw_text.lower() == '.bored':
+        #    await getActivity(event)
+
+        #if event.raw_text.lower() == '.insult':
+        #    await getInsulted(event)
+
+        #if event.raw_text.lower() == '.advice':
+        #    await getAdvice(event)
+
+        #if event.raw_text.lower() == '.dadjoke':
+        #    await getDadJoke(event)
+
+        #if event.raw_text.lower() == '.ping':
+        #    await getPing(event)
+
+        #if event.raw_text.lower() == '.startbot':
+        #    await startBot(event)
+
+        #if event.raw_text.lower().startswith('.reputation'):
+        #    await updateReputationSettings(event)
+
+        #if event.raw_text.lower().startswith('.profanity'):
+        #    await updateProfanitySettings(event)
+
+        #if event.raw_text.lower().startswith('.welcome'):
+        #    await updateWelcomeSettings(event)
+
+        #if event.raw_text.lower().startswith('.left'):
+        #    await updateLeftSettings(event)
+
+        #if event.raw_text.lower().startswith('.welcometext'):
+        #    await updateWelcomeText(event)
+
+        #if event.raw_text.lower().startswith('.lefttext'):
+        #    await updateLeftText(event)
+
+        #if event.raw_text.lower().startswith('.profaneadd'):
+        #    await addProfaneWord(event)
+
+        #if event.raw_text.lower() == '.art':
+        #    await getArt(event)
+
+        #if event.raw_text.lower() == '.trv':
+        #    await getTrv(event)
+
+        #if event.raw_text.lower() == '.toprep':
+        #    await toprep(event)
+
+        #if event.raw_text.lower() == '.clean':
+        #    await clean(event)
+
+        #if event.raw_text.lower() == '.cmd':
+        #    await getCommands(event)
+    
     except Exception as e:
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.ChatAction)
 async def chat_action_handler(event):
@@ -503,9 +628,9 @@ async def chat_action_handler(event):
                 welcomeText = leftText.replace("{username}",str(userEntity.username))
             await event.reply(leftText)
     except Exception as e:
-        pass
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-#@client.on(events.NewMessage(pattern=r'^\.langcodes$'))
+@client.on(events.NewMessage(pattern=r'^\.langcodes$'))
 async def langcodes(event):
     try:
         con = await getDbCon()
@@ -517,16 +642,12 @@ async def langcodes(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         s = googletrans.LANGUAGES
         listToStr = json.dumps(s)
         res = '\n'.join('{!r}: {!r},'.format(k, v) for k, v in s.items())
         await event.reply(res.rstrip(','))
     except Exception as e:
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\++$'))
 async def increaseRep(event):
@@ -552,9 +673,6 @@ async def increaseRep(event):
             toUserName = toUserEntity.username
             toUserFirstName = toUserEntity.first_name
             toUserLastName = toUserEntity.last_name
-            count = await getUserStats(channelId,fromUserId)
-            countMessage = count[0] + 1
-            await updateMessageCount(channelId,fromUserId,countMessage)
             allsettings = json.loads(await loadSettings())
             for setting in allsettings:
                 if setting["ChannelID"] == str(channelId):
@@ -571,9 +689,8 @@ async def increaseRep(event):
                     await updateRep(channelId,fromUserId,countRep)
                     await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
         except Exception as e:
-            await event.reply("Something went wrong!")
+            
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\--$'))
 async def decreaseRep(event):
@@ -599,9 +716,6 @@ async def decreaseRep(event):
             toUserId = toUserEntity.id
             toUserName = toUserEntity.username
             toUserFirstName = toUserEntity.first_name
-            count = await getUserStats(channelId,fromUserId)
-            count = count[0] + 1
-            await updateMessageCount(channelId,fromUserId,count)            
             allsettings = json.loads(await loadSettings())
             for setting in allsettings:
                 if setting["ChannelID"] == str(channelId):
@@ -620,9 +734,8 @@ async def decreaseRep(event):
                     await updateRep(channelId,fromUserId,count)
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
         except Exception as e:
-            await event.reply("Something went wrong!")
+            
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\.news [a-zA-Z]'))
 async def getNewsData(event):
@@ -636,9 +749,6 @@ async def getNewsData(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         command = event.raw_text.lower()
         term = command.replace('.news ','')
         newsData = await getNews(term)
@@ -649,7 +759,6 @@ async def getNewsData(event):
             await event.reply('Search topic was not provided or could not fetch news.')
     except Exception as e:
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\.what$'))
 async def getMeaning(event):
@@ -663,9 +772,6 @@ async def getMeaning(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         search = event.raw_text.lower().replace('.what ','')
         if search is not None and '.what' not in search.lower():
             url = "https://www.vocabulary.com/dictionary/" + search + ""
@@ -678,9 +784,8 @@ async def getMeaning(event):
                 soup1 = 'Cannot find such word! Check spelling.'
         await event.reply(soup1)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\.cmd$'))
 async def getCommands(event):
@@ -694,14 +799,10 @@ async def getCommands(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         await event.reply(cmds)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\.m$'))
 async def mute(event):
@@ -716,9 +817,6 @@ async def mute(event):
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
@@ -732,9 +830,8 @@ async def mute(event):
             await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=60),send_messages=False)
             await event.reply(toUserFirstName + ', you are muted upto 1 hour for not following rules!.')
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\.um$'))
 async def unmute(event):
@@ -749,9 +846,6 @@ async def unmute(event):
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
@@ -765,9 +859,8 @@ async def unmute(event):
             await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),send_messages=True)
             await event.reply(toUserFirstName + ', you are unmuted!.')
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\.b$'))
 async def ban(event):
@@ -782,9 +875,6 @@ async def ban(event):
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
@@ -798,9 +888,8 @@ async def ban(event):
             await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),view_messages=False)
             await event.reply(toUserFirstName + ', you are banned!.')
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
 
 @client.on(events.NewMessage(pattern=r'^\.ub$'))
 async def unban(event):
@@ -815,9 +904,6 @@ async def unban(event):
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
@@ -831,9 +917,9 @@ async def unban(event):
             await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),view_messages=True)
             await event.reply(toUserFirstName + ', you are unbanned!.')
     except Exception as e:
-        await event.reply("Something went wrong!")
+
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
     
 @client.on(events.NewMessage(pattern=r'^\.stat$'))
 async def getUserStat(event):
@@ -847,17 +933,14 @@ async def getUserStat(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         data = await getUserStats(channelId,fromUserId)
         if data is not None:
             s = "Total Messages : "+str(int(data[0]))+" \nTotal Reputation : " + str(data[1])
             await event.reply(s)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.joke$'))
 async def getJoke(event):
@@ -871,9 +954,6 @@ async def getJoke(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = "https://v2.jokeapi.dev/joke/Any";
         data = requests.get(url = URL)
         data = data.json()
@@ -881,9 +961,9 @@ async def getJoke(event):
         joke = emoji.emojize(joke, use_aliases=True)
         await event.reply(joke)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.yomama$'))
 async def getYomama(event):
@@ -897,17 +977,14 @@ async def getYomama(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = "https://api.yomomma.info/"
         data = requests.get(url = URL)
         yomama = data.json()
         await event.reply(yomama['joke'])
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.loc$'))
 async def getLocation(event):
@@ -921,18 +998,15 @@ async def getLocation(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = "https://freegeoip.app/json/";
         data = requests.get(url = URL)
         loc = data.json()
         locData = loc['country_name'] + "-" + loc['region_name'] + "-" + loc['city']
         await event.reply(locData)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.quote$'))
 async def getQuote(event):
@@ -946,18 +1020,15 @@ async def getQuote(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = "https://api.forismatic.com/api/1.0/?method=getQuote&lang=en&format=jsonp&jsonp=?"
         data = requests.get(url = URL)
         response = data.text[1:]
         qData = json.loads(response.replace("(","").replace(")",""))
         await event.reply(qData['quoteText'] + '\n\n' + 'By - ' + qData['quoteAuthor'])
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.bored$'))
 async def getActivity(event):
@@ -971,18 +1042,15 @@ async def getActivity(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = "https://www.boredapi.com/api/activity"
         data = requests.get(url = URL)
         activity = data.json()
         activityData = activity['activity']
         await event.reply(activityData)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.insult$'))
 async def getInsulted(event):
@@ -996,18 +1064,15 @@ async def getInsulted(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = "https://evilinsult.com/generate_insult.php?lang=en&type=json"
         data = requests.get(url = URL)
         insult = data.json()
         insultData = insult['insult']
         await event.reply(insultData)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.advice$'))
 async def getAdvice(event):
@@ -1021,18 +1086,15 @@ async def getAdvice(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = "https://api.adviceslip.com/advice"
         data = requests.get(url = URL)
         advice = data.json()
         adviceData = advice['slip']['advice']
         await event.reply(adviceData)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.dadjoke$'))
 async def getDadJoke(event):
@@ -1046,18 +1108,15 @@ async def getDadJoke(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = "https://icanhazdadjoke.com/"
         htmlfile = requests.get(url = URL)
         soup = BeautifulSoup(htmlfile.text, 'html.parser')
         soup1 = soup.find('p', attrs={'class' : 'subtitle'})
         await event.reply(soup1.get_text())
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.ping$'))
 async def getPing(event):
@@ -1071,16 +1130,13 @@ async def getPing(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         m = await event.respond('!pong')
         time.sleep(3)
         await client.delete_messages(event.chat_id, [event.id, m.id])
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.startbot$'))
 async def startBot(event):
@@ -1094,17 +1150,14 @@ async def startBot(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         await event.reply('Wait!')
-        await deleteCommandMessage(channelId,event.message.id)
+        
         await AddClient(channelEntity)
         await event.reply('Working now!')
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.reputation (?i)(true|false)$'))
 async def updateReputationSettings(event):
@@ -1118,33 +1171,30 @@ async def updateReputationSettings(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if event.raw_text.lower() == '.reputation true' and (isadmin or iscreator):
             try:
-                await deleteCommandMessage(channelId,event.message.id)
+                
                 await UpdateClientSettings(channelId,"Reputation","true")
                 await event.reply('Settings Updated!')
             except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                await deleteCommandMessage(channelId,event.message.id)
+                
 
         if event.raw_text.lower() == '.reputation false' and (isadmin or iscreator):
             try:
-                await deleteCommandMessage(channelId,event.message.id)
+                
                 await UpdateClientSettings(channelId,"Reputation","false")
                 await event.reply('Settings Updated!')
             except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                await deleteCommandMessage(channelId,event.message.id)
+                
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.profanity (?i)(true|false)$'))
 async def updateProfanitySettings(event):
@@ -1158,33 +1208,30 @@ async def updateProfanitySettings(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if event.raw_text.lower() == '.profanity true' and (isadmin or iscreator):
             try:
-                await deleteCommandMessage(channelId,event.message.id)
+                
                 await UpdateClientSettings(channelId,"Profanity","true")
                 await event.reply('Settings Updated!')
             except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                await deleteCommandMessage(channelId,event.message.id)
+                
 
         if event.raw_text.lower() == '.profanity false' and (isadmin or iscreator):
             try:
-                await deleteCommandMessage(channelId,event.message.id)
+                
                 await UpdateClientSettings(channelId,"Profanity","false")
                 await event.reply('Settings Updated!')
             except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                await deleteCommandMessage(channelId,event.message.id)
+                
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.welcome (?i)(true|false)$'))
 async def updateWelcomeSettings(event):
@@ -1198,33 +1245,30 @@ async def updateWelcomeSettings(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if event.raw_text.lower() == '.welcome true' and (isadmin or iscreator):
             try:
-                await deleteCommandMessage(channelId,event.message.id)
+                
                 await UpdateClientSettings(channelId,"Welcome","true")
                 await event.reply('Settings Updated!')
             except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                await deleteCommandMessage(channelId,event.message.id)
+                
 
         if event.raw_text.lower() == '.welcome false' and (isadmin or iscreator):
             try:
-                await deleteCommandMessage(channelId,event.message.id)
+                
                 await UpdateClientSettings(channelId,"Welcome","false")
                 await event.reply('Settings Updated!')
             except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                await deleteCommandMessage(channelId,event.message.id)
+                
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.left (?i)(true|false)$'))
 async def updateLeftSettings(event):
@@ -1238,33 +1282,30 @@ async def updateLeftSettings(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if event.raw_text.lower() == '.left true' and (isadmin or iscreator):
             try:
-                await deleteCommandMessage(channelId,event.message.id)
+                
                 await UpdateClientSettings(channelId,"Left","true")
                 await event.reply('Settings Updated!')
             except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                await deleteCommandMessage(channelId,event.message.id)
+                
 
         if event.raw_text.lower() == '.welcome false' and (isadmin or iscreator):
             try:
-                await deleteCommandMessage(channelId,event.message.id)
+                
                 await UpdateClientSettings(channelId,"Left","false")
                 await event.reply('Settings Updated!')
             except Exception as e:
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                await deleteCommandMessage(channelId,event.message.id)
+                
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.welcometext [a-zA-Z]$'))
 async def updateWelcomeText(event):
@@ -1278,22 +1319,19 @@ async def updateWelcomeText(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if isadmin or iscreator:
-            await deleteCommandMessage(channelId,event.message.id)
+            
             text = event.raw_text.lower().replace(".welcometext","",1)
             if text is not None:
                 await UpdateClientSettings(channelId,"WelcomeText",text)
                 await event.reply('Settings Updated!')
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.lefttext [a-zA-Z]$'))
 async def updateLeftText(event):
@@ -1307,22 +1345,19 @@ async def updateLeftText(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if isadmin or iscreator:
-            await deleteCommandMessage(channelId,event.message.id)
+            
             text = event.raw_text.lower().replace(".lefttext","",1)
             if text is not None:
                 await UpdateClientSettings(channelId,"LeftText",text)
                 await event.reply('Settings Updated!')
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.profaneadd [a-zA-Z]$'))
 async def addProfaneWord(event):
@@ -1336,9 +1371,6 @@ async def addProfaneWord(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
@@ -1347,9 +1379,9 @@ async def addProfaneWord(event):
             profanity.add_censor_words(word)
             await event.reply('Word Added!')
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.art$'))
 async def getArt(event):
@@ -1363,9 +1395,6 @@ async def getArt(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         await event.reply("Wait ! Let me find art for you.")
         header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
         #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
@@ -1384,9 +1413,9 @@ async def getArt(event):
                 print(e)
                 await event.reply("Oh snap! Try again later.")
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.trv$'))
 async def getTrv(event):
@@ -1400,9 +1429,6 @@ async def getTrv(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         URL = triviaUrl
         data = requests.get(url = URL)
         trivia = json.loads(data.text)
@@ -1423,9 +1449,9 @@ async def getTrv(event):
             ),correct_answers=str(correct_answer_id)
         ))
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.toprep$'))
 async def topRep(event):
@@ -1439,18 +1465,15 @@ async def topRep(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
         reps = await getTopRep(channelId)
         s=""
         for rep in reps:
             s += rep[1] + "(" + str(rep[0]) + ")"
         await event.reply(s)
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 @client.on(events.NewMessage(pattern=r'^\.clean$'))
 async def clean(event):
@@ -1464,10 +1487,7 @@ async def clean(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        count = await getUserStats(channelId,fromUserId)
-        count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
-        await deleteCommandMessage(channelId,event.message.id)
+        
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
@@ -1478,8 +1498,8 @@ async def clean(event):
             await deleteMessagesFromDB(channelId)
             await event.reply('Cleaned!')
     except Exception as e:
-        await event.reply("Something went wrong!")
+        
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        await deleteCommandMessage(channelId,event.message.id)
+        
 
 client.run_until_disconnected()
