@@ -53,7 +53,7 @@ s = sched.scheduler(time.time, time.sleep)
 def createQueries():
     queries = []
     queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelDetails"("ChannelId" text,"ChannelTitle" text,"ChannelUsername" text,"AccessHash" text,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelDetails" OWNER to postgres; """)
-    queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
+    queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,PRIMARY KEY "SettingsID") WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
     queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
     queries.append(""" CREATE TABLE IF NOT EXISTS "Messages"("ChannelID" text,"MessageID" text) WITH (OIDS = FALSE); ALTER TABLE "Messages" OWNER to postgres; """)
     cur = con.cursor()
@@ -143,6 +143,8 @@ async def AddClient(ChannelEntity):
     #    con = await getDbCon()
     if ChannelEntity is not None:
         con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         cid = ChannelEntity.id
         select = 'SELECT "SettingsID" FROM "ChannelSettings" WHERE "ChannelID" = %s'
         selectparam = (str(cid),)
@@ -172,6 +174,8 @@ async def UpdateClientSettings(channelid,key,value):
     #    con = await getDbCon()
     if channelid is not None and key is not None and value is not None:
         con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         select = 'SELECT "SettingsID" FROM "ChannelSettings" WHERE "ChannelID" = %s'
         selectparam = (str(channelid),)
         cur = con.cursor()
@@ -212,6 +216,8 @@ async def UpdateClientSettings(channelid,key,value):
 
 async def loadSettings():
     con = await getDbCon()
+    while con.closed == 1:
+            con = await getDbCon()
     select = 'SELECT * FROM "ChannelSettings"'
     cur = con.cursor(cursor_factory=RealDictCursor)
     cur.execute(select)
@@ -225,6 +231,8 @@ async def AddUser(channelid,userid,firstname):
     #    con = await getDbCon()
     if channelid is not None and userid is not None:
         con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         select = 'SELECT "ChannelID","UserID" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s'
         selectparam = (str(channelid),str(userid),)
         cur = con.cursor()
@@ -242,6 +250,8 @@ async def updateMessageCount(channelid,userid,count):
     #    con = await getDbCon()
     if channelid is not None and userid is not None:
         con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         userEntity = await client.get_entity(userid)
         firstname = userEntity.first_name
         await AddUser(channelid,userid,firstname)
@@ -256,6 +266,8 @@ async def getUserStats(channelid,userid):
     #    con = await getDbCon()
     if channelid is not None and userid is not None:
         con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         select = 'SELECT "TotalMessages","TotalReputation" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s'
         selectparam = (str(channelid),str(userid))
         cur = con.cursor()
@@ -268,6 +280,8 @@ async def updateRep(channelid,userid,rep):
     #    con = await getDbCon()
     if channelid is not None and userid is not None:
         con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         update = 'UPDATE "UserDetails" set "TotalReputation" = %s WHERE "ChannelID" = %s and "UserID" = %s'
         updateparam = (rep,str(channelid),str(userid))
         cur = con.cursor()
@@ -290,6 +304,8 @@ async def deleteCommandMessage(channelid,msgid):
 async def getTopRep(channelid):
     if channelid is not None:
         con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         select = 'SELECT "TotalReputation","FirstName" FROM "UserDetails" WHERE "ChannelID" = %s'
         selectparam = (str(channelid),)
         cur = con.cursor()
@@ -361,6 +377,8 @@ async def eventData(event):
         
 async def saveMessageIDs(messageid,channelid):
     if messageid is not None:
+        while con.closed == 1:
+            con = await getDbCon()
             insert = 'INSERT INTO "Messages" ("MessageID","ChannelID") VALUES (%s,%s)'
             insertparam = (str(messageid),str(channelid),)
             cur = con.cursor()
@@ -369,6 +387,8 @@ async def saveMessageIDs(messageid,channelid):
 
 async def deleteMessagesFromDB(channelid):
     if channelid is not None:
+        while con.closed == 1:
+            con = await getDbCon()
             delete = 'DELETE FROM "Messages" WHERE "ChannelID" = %s'
             deleteparam = (str(channelid),)
             cur = con.cursor()
@@ -379,6 +399,8 @@ async def deleteMessagesFromDB(channelid):
 async def getMessageIDs(channelid):
     if channelid is not None:
         con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         select = 'SELECT "MessageID","ChannelID" FROM "Messages" WHERE "ChannelID" = %s'
         selectparam = (str(channelid),)
         cur = con.cursor()
@@ -392,6 +414,9 @@ async def my_event_handler(event):
         myID = 1318065263
         channelId = event.message.to_id.channel_id
         msgid = event.message.id
+        con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
         await saveMessageIDs(msgid,channelId)
         replytomsgid = event.message.reply_to_msg_id
         toUserId = None
@@ -476,9 +501,9 @@ async def my_event_handler(event):
                 except Exception as e:
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-#        if toUserId is not None and toUserId == myID:
-#            bot_response = kernel.respond(event.raw_text.lower())
-#            await event.reply(bot_response)
+        #if toUserId is not None and toUserId == myID:
+        #    bot_response = kernel.respond(event.raw_text.lower())
+        #    await event.reply(bot_response)
 
         #if event.raw_text.lower() == ".langcodes":
         #    await langcodes(event)
@@ -585,6 +610,8 @@ async def my_event_handler(event):
 @client.on(events.ChatAction)
 async def chat_action_handler(event):
     try:
+        while con.closed == 1:
+            con = await getDbCon()
         channelId = event.chat.id
         welcomeEnabled = False
         leftEnabled = False
@@ -634,11 +661,8 @@ async def chat_action_handler(event):
 async def langcodes(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -655,12 +679,8 @@ async def increaseRep(event):
     if replytomsgid is not None:
         try:
             con = await getDbCon()
-            while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
-
+            while con.closed == 1:
+                con = await getDbCon()
             fromUserId = event.from_id
             fromUserEntity = await client.get_entity(fromUserId)
             fromUserName = fromUserEntity.username
@@ -698,11 +718,8 @@ async def decreaseRep(event):
     if replytomsgid is not None:
         try:
             con = await getDbCon()
-            while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+            while con.closed == 1:
+                con = await getDbCon()
 
             fromUserId = event.from_id
             fromUserEntity = await client.get_entity(fromUserId)
@@ -741,11 +758,8 @@ async def decreaseRep(event):
 async def getNewsData(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -764,11 +778,8 @@ async def getNewsData(event):
 async def getMeaning(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -791,11 +802,8 @@ async def getMeaning(event):
 async def getCommands(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -808,11 +816,8 @@ async def getCommands(event):
 async def mute(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
@@ -837,11 +842,8 @@ async def mute(event):
 async def unmute(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
@@ -866,11 +868,8 @@ async def unmute(event):
 async def ban(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
@@ -895,11 +894,8 @@ async def ban(event):
 async def unban(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
@@ -925,11 +921,8 @@ async def unban(event):
 async def getUserStat(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -946,11 +939,8 @@ async def getUserStat(event):
 async def getJoke(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -969,11 +959,8 @@ async def getJoke(event):
 async def getYomama(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -990,11 +977,8 @@ async def getYomama(event):
 async def getLocation(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1012,11 +996,8 @@ async def getLocation(event):
 async def getQuote(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1034,11 +1015,8 @@ async def getQuote(event):
 async def getActivity(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1056,11 +1034,8 @@ async def getActivity(event):
 async def getInsulted(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1078,11 +1053,8 @@ async def getInsulted(event):
 async def getAdvice(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1100,11 +1072,8 @@ async def getAdvice(event):
 async def getDadJoke(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1122,11 +1091,8 @@ async def getDadJoke(event):
 async def getPing(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1142,11 +1108,8 @@ async def getPing(event):
 async def startBot(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1163,11 +1126,8 @@ async def startBot(event):
 async def updateReputationSettings(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1200,7 +1160,7 @@ async def updateReputationSettings(event):
 async def updateProfanitySettings(event):
     try:
         con = await getDbCon()
-        while con is None:
+        while con.closed == 1:
                 try:
                     con = await getDbCon()
                 except psycopg2.OperationalError:
@@ -1237,11 +1197,8 @@ async def updateProfanitySettings(event):
 async def updateWelcomeSettings(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1274,11 +1231,8 @@ async def updateWelcomeSettings(event):
 async def updateLeftSettings(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1311,11 +1265,8 @@ async def updateLeftSettings(event):
 async def updateWelcomeText(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1337,11 +1288,8 @@ async def updateWelcomeText(event):
 async def updateLeftText(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1363,11 +1311,8 @@ async def updateLeftText(event):
 async def addProfaneWord(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1387,11 +1332,8 @@ async def addProfaneWord(event):
 async def getArt(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1421,11 +1363,8 @@ async def getArt(event):
 async def getTrv(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1457,11 +1396,8 @@ async def getTrv(event):
 async def topRep(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
@@ -1479,11 +1415,8 @@ async def topRep(event):
 async def clean(event):
     try:
         con = await getDbCon()
-        while con is None:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
+        while con.closed == 1:
+            con = await getDbCon()
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
