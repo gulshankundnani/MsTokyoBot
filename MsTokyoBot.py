@@ -726,7 +726,7 @@ async def increaseRep(event):
                 if repEnabled == True:
                     count = await getUserStats(channelId,fromUserId)
                     countRep = count[1] + 1
-                    await updateRep(channelId,fromUserId,countRep)
+                    await updateRep(channelId,toUserId,countRep)
                     await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
         except Exception as e:
             logging.exception("message")
@@ -768,7 +768,7 @@ async def decreaseRep(event):
                     count = await getUserStats(channelId,fromUserId)
                     count = count[1] - 1
                     await updateMessageCount(channelId,fromUserId,count)
-                    await updateRep(channelId,fromUserId,count)
+                    await updateRep(channelId,toUserId,count)
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
         except Exception as e:
             logging.exception("message")
