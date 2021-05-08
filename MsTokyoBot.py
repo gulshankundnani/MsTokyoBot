@@ -43,32 +43,42 @@ from PIL import Image
 from io import BytesIO
 import io
 import base64
+import logging
 #import aiml
 #import asyncio
 
 con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 s = sched.scheduler(time.time, time.sleep)
 
-
-def createQueries():
-    queries = []
-    queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelDetails"("ChannelId" text,"ChannelTitle" text,"ChannelUsername" text,"AccessHash" text,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelDetails" OWNER to postgres; """)
-    queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial NOT NULL,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,PRIMARY KEY ("SettingsID")) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
-    queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
-    queries.append(""" CREATE TABLE IF NOT EXISTS "Messages"("ChannelID" text,"MessageID" text) WITH (OIDS = FALSE); ALTER TABLE "Messages" OWNER to postgres; """)
-    cur = con.cursor()
-    for query in queries:
-        cur.execute(query)
-        con.commit()
-        time.sleep(5)
-
-print('Started')
-createQueries()
-print('Exited')
-
 async def getDbCon():
     #conn = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
     return con
+
+def createQueries():
+    try:      
+        print("Started")
+        tables = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"
+        queries = []
+        queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelDetails"("ChannelId" text,"ChannelTitle" text,"ChannelUsername" text,"AccessHash" text,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelDetails" OWNER to postgres; """)
+        queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,PRIMARY KEY ("SettingsID")) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
+        queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
+        queries.append(""" CREATE TABLE IF NOT EXISTS "Messages"("ChannelID" text,"MessageID" text) WITH (OIDS = FALSE); ALTER TABLE "Messages" OWNER to postgres; """)
+        con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
+        cur = con.cursor()
+        cur.execute(tables)
+        tabData = cur.fetchall()
+        if tabData is None:
+            for query in queries:
+                cur.execute(query)
+                con.commit()
+                time.sleep(1)
+        print("Done")
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
+createQueries()
 
 #scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 #creds = ServiceAccountCredentials.from_json_keyfile_name("MsTokyoBot-462b786ad30e.json",scope)
@@ -183,7 +193,7 @@ async def UpdateClientSettings(channelid,key,value):
         sid = cur.fetchone()
         if sid is None:
             insert = 'INSERT INTO "ChannelSettings" ("ChannelID","Profanity","Reputation","AIChat") VALUES (%s,%s,%s,%s)'
-            insertparam = (str(ChannelEntity.id),False,True,False)
+            insertparam = (str(channelid),False,True,False)
             cur = con.cursor()
             cur.execute(insert,insertparam)
             con.commit()
@@ -299,6 +309,7 @@ async def deleteCommandMessage(channelid,msgid):
         await client.delete_messages(channelid,msgid)
         #client(DeleteMessagesRequest(channelid, msgid))
     except Exception as e:
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 async def getTopRep(channelid):
@@ -326,6 +337,7 @@ async def getNews(term):
             rs = random.choice(results)
             return rs
     except Exception as e:
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 async def get_soup(url,header):
@@ -356,6 +368,7 @@ async def eventData(event):
             eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName,fromUserFirstName,fromUserLastName,toUserFirstName,toUserLastName,toUserId]
             return eventDataList
         except Exception as e:
+            logging.exception("message")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
     else:
         print('private chat')
@@ -445,35 +458,35 @@ async def my_event_handler(event):
             count = count[0] + 1
         await updateMessageCount(channelId,fromUserId,count)
 
-        if settings.count == 0:
+        if len(settings) == 0:
             await loadSettings()
-            allsettings = json.loads(settings)
-            for setting in allsettings:
-                if setting["ChannelID"] == str(channelId):
-                    if setting["Reputation"] == True:
-                        repEnabled = True
-                    else:
-                        repEnabled = False
-                    if setting["Profanity"] == True:
-                        profanityEnabled = True
-                    else:
-                        profanityEnabled = False
-                    if setting["AIChat"] == True:
-                        aichatEnabled = True
-                    else:
-                        aichatEnabled = False
-                    if setting["Welcome"] == True:
-                        welcomeEnabled = True
-                    else:
-                        welcomeEnabled = False
-                    if setting["Left"] == True:
-                        leftEnabled = True
-                    else:
-                        leftEnabled = False
-                    if setting["Active"] == True:
-                        isActive = True
-                    else:
-                        isActive = False
+        allsettings = json.loads(settings)
+        for setting in allsettings:
+            if setting["ChannelID"] == str(channelId):
+                if setting["Reputation"] == True:
+                    repEnabled = True
+                else:
+                    repEnabled = False
+                if setting["Profanity"] == True:
+                    profanityEnabled = True
+                else:
+                    profanityEnabled = False
+                if setting["AIChat"] == True:
+                    aichatEnabled = True
+                else:
+                    aichatEnabled = False
+                if setting["Welcome"] == True:
+                    welcomeEnabled = True
+                else:
+                    welcomeEnabled = False
+                if setting["Left"] == True:
+                    leftEnabled = True
+                else:
+                    leftEnabled = False
+                if setting["Active"] == True:
+                    isActive = True
+                else:
+                    isActive = False
 
         if profanityEnabled:
                 if profanity.contains_profanity(event.raw_text.lower()):
@@ -501,6 +514,7 @@ async def my_event_handler(event):
                         translation = translator.translate(term,dest='en')
                         await event.reply(translation.text)
                 except Exception as e:
+                    logging.exception("message")
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
         #if toUserId is not None and toUserId == myID:
@@ -607,6 +621,7 @@ async def my_event_handler(event):
         #    await getCommands(event)
     
     except Exception as e:
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.ChatAction)
@@ -657,6 +672,7 @@ async def chat_action_handler(event):
                 welcomeText = leftText.replace("{username}",str(userEntity.username))
             await event.reply(leftText)
     except Exception as e:
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.langcodes$'))
@@ -673,6 +689,7 @@ async def langcodes(event):
         res = '\n'.join('{!r}: {!r},'.format(k, v) for k, v in s.items())
         await event.reply(res.rstrip(','))
     except Exception as e:
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\++$'))
@@ -707,11 +724,12 @@ async def increaseRep(event):
                     await event.reply('Nice Try, But NO ! You cannot give reputation to yourself !')
             else:
                 if repEnabled == True:
+                    count = await getUserStats(channelId,fromUserId)
                     countRep = count[1] + 1
                     await updateRep(channelId,fromUserId,countRep)
                     await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
         except Exception as e:
-            
+            logging.exception("message")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\--$'))
@@ -753,7 +771,7 @@ async def decreaseRep(event):
                     await updateRep(channelId,fromUserId,count)
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
         except Exception as e:
-            
+            logging.exception("message")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.news [a-zA-Z]'))
@@ -774,6 +792,7 @@ async def getNewsData(event):
         else:
             await event.reply('Search topic was not provided or could not fetch news.')
     except Exception as e:
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.what$'))
@@ -797,7 +816,7 @@ async def getMeaning(event):
                 soup1 = 'Cannot find such word! Check spelling.'
         await event.reply(soup1)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.cmd$'))
@@ -811,7 +830,7 @@ async def getCommands(event):
         channelId = event.message.to_id.channel_id
         await event.reply(cmds)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.m$'))
@@ -837,7 +856,7 @@ async def mute(event):
             await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=60),send_messages=False)
             await event.reply(toUserFirstName + ', you are muted upto 1 hour for not following rules!.')
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.um$'))
@@ -863,7 +882,7 @@ async def unmute(event):
             await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),send_messages=True)
             await event.reply(toUserFirstName + ', you are unmuted!.')
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.b$'))
@@ -889,7 +908,7 @@ async def ban(event):
             await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),view_messages=False)
             await event.reply(toUserFirstName + ', you are banned!.')
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.ub$'))
@@ -915,7 +934,7 @@ async def unban(event):
             await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),view_messages=True)
             await event.reply(toUserFirstName + ', you are unbanned!.')
     except Exception as e:
-
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
     
@@ -933,7 +952,7 @@ async def getUserStat(event):
             s = "Total Messages : "+str(int(data[0]))+" \nTotal Reputation : " + str(data[1])
             await event.reply(s)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -953,7 +972,7 @@ async def getJoke(event):
         joke = emoji.emojize(joke, use_aliases=True)
         await event.reply(joke)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -971,7 +990,7 @@ async def getYomama(event):
         yomama = data.json()
         await event.reply(yomama['joke'])
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -990,7 +1009,7 @@ async def getLocation(event):
         locData = loc['country_name'] + "-" + loc['region_name'] + "-" + loc['city']
         await event.reply(locData)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1009,7 +1028,7 @@ async def getQuote(event):
         qData = json.loads(response.replace("(","").replace(")",""))
         await event.reply(qData['quoteText'] + '\n\n' + 'By - ' + qData['quoteAuthor'])
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1028,7 +1047,7 @@ async def getActivity(event):
         activityData = activity['activity']
         await event.reply(activityData)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1047,7 +1066,7 @@ async def getInsulted(event):
         insultData = insult['insult']
         await event.reply(insultData)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1066,7 +1085,7 @@ async def getAdvice(event):
         adviceData = advice['slip']['advice']
         await event.reply(adviceData)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1085,7 +1104,7 @@ async def getDadJoke(event):
         soup1 = soup.find('p', attrs={'class' : 'subtitle'})
         await event.reply(soup1.get_text())
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1102,7 +1121,7 @@ async def getPing(event):
         time.sleep(3)
         await client.delete_messages(event.chat_id, [event.id, m.id])
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1120,7 +1139,7 @@ async def startBot(event):
         await AddClient(channelEntity)
         await event.reply('Working now!')
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1142,6 +1161,7 @@ async def updateReputationSettings(event):
                 await UpdateClientSettings(channelId,"Reputation","true")
                 await event.reply('Settings Updated!')
             except Exception as e:
+                logging.exception("message")
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1151,10 +1171,11 @@ async def updateReputationSettings(event):
                 await UpdateClientSettings(channelId,"Reputation","false")
                 await event.reply('Settings Updated!')
             except Exception as e:
+                logging.exception("message")
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1179,6 +1200,7 @@ async def updateProfanitySettings(event):
                 await UpdateClientSettings(channelId,"Profanity","true")
                 await event.reply('Settings Updated!')
             except Exception as e:
+                logging.exception("message")
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1188,10 +1210,11 @@ async def updateProfanitySettings(event):
                 await UpdateClientSettings(channelId,"Profanity","false")
                 await event.reply('Settings Updated!')
             except Exception as e:
+                logging.exception("message")
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1213,6 +1236,7 @@ async def updateWelcomeSettings(event):
                 await UpdateClientSettings(channelId,"Welcome","true")
                 await event.reply('Settings Updated!')
             except Exception as e:
+                logging.exception("message")
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1222,10 +1246,11 @@ async def updateWelcomeSettings(event):
                 await UpdateClientSettings(channelId,"Welcome","false")
                 await event.reply('Settings Updated!')
             except Exception as e:
+                logging.exception("message")
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1247,6 +1272,7 @@ async def updateLeftSettings(event):
                 await UpdateClientSettings(channelId,"Left","true")
                 await event.reply('Settings Updated!')
             except Exception as e:
+                logging.exception("message")
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1256,10 +1282,11 @@ async def updateLeftSettings(event):
                 await UpdateClientSettings(channelId,"Left","false")
                 await event.reply('Settings Updated!')
             except Exception as e:
+                logging.exception("message")
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1282,7 +1309,7 @@ async def updateWelcomeText(event):
                 await UpdateClientSettings(channelId,"WelcomeText",text)
                 await event.reply('Settings Updated!')
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1305,7 +1332,7 @@ async def updateLeftText(event):
                 await UpdateClientSettings(channelId,"LeftText",text)
                 await event.reply('Settings Updated!')
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1326,7 +1353,7 @@ async def addProfaneWord(event):
             profanity.add_censor_words(word)
             await event.reply('Word Added!')
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1357,7 +1384,7 @@ async def getArt(event):
                 print(e)
                 await event.reply("Oh snap! Try again later.")
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1390,7 +1417,7 @@ async def getTrv(event):
             ),correct_answers=str(correct_answer_id)
         ))
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1409,7 +1436,7 @@ async def topRep(event):
             s += rep[1] + "(" + str(rep[0]) + ")" + "\n"
         await event.reply(s)
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1431,15 +1458,14 @@ async def clean(event):
             msgarr = []
             for message in messages:
                 msgid = message[0]
-                result = await client(functions.channels.DeleteMessagesRequest(
+                await client(functions.channels.DeleteMessagesRequest(
                             channel=channelEntity,
                             id=[int(msgid)]
                         ))
-        print(result)
-            #await deleteMessagesFromDB(channelId)
-            #await event.reply('Cleaned!')
+            await deleteMessagesFromDB(channelId)
+            await event.reply('Cleaned!')
     except Exception as e:
-        
+        logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
