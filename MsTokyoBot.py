@@ -476,9 +476,9 @@ async def my_event_handler(event):
                 except Exception as e:
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-        if toUserId is not None and toUserId == myID:
-            bot_response = kernel.respond(event.raw_text.lower())
-            await event.reply(bot_response)
+#        if toUserId is not None and toUserId == myID:
+#            bot_response = kernel.respond(event.raw_text.lower())
+#            await event.reply(bot_response)
 
         #if event.raw_text.lower() == ".langcodes":
         #    await langcodes(event)
