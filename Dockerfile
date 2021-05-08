@@ -15,7 +15,7 @@ COPY MsTokyoBot.py .
 
 #install dependencies
 RUN pip install -r requirements.txt
-RUN pip install -r aiml kernel
+RUN pip3 install aiml kernel
 
 # copy code itself from context to image
 COPY . .
