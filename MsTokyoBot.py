@@ -43,7 +43,7 @@ from PIL import Image
 from io import BytesIO
 import io
 import base64
-#import aiml
+import aiml
 #import asyncio
 
 con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
