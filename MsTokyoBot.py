@@ -53,7 +53,7 @@ s = sched.scheduler(time.time, time.sleep)
 def createQueries():
     queries = []
     queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelDetails"("ChannelId" text,"ChannelTitle" text,"ChannelUsername" text,"AccessHash" text,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelDetails" OWNER to postgres; """)
-    queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,PRIMARY KEY "SettingsID") WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
+    queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,PRIMARY KEY ("SettingsID")) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
     queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
     queries.append(""" CREATE TABLE IF NOT EXISTS "Messages"("ChannelID" text,"MessageID" text) WITH (OIDS = FALSE); ALTER TABLE "Messages" OWNER to postgres; """)
     cur = con.cursor()
@@ -111,7 +111,7 @@ cmds += ".welcometext : set welcome text eg: welcome {firstname/username} \n"
 cmds += ".left : use true/false to enable or disable welcome \n"
 cmds += ".lefttext : set left text \n"
 cmds += ".art : Get art pics \n"
-cmds += ".clean : Clean the group. Make sure you have disabled messages before using the command. \n"
+#cmds += ".clean : Clean the group. Make sure you have disabled messages before using the command. \n"
 cmds += ".cmd : Get list of commands \n"
 
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
@@ -306,8 +306,8 @@ async def getTopRep(channelid):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        select = 'SELECT "TotalReputation","FirstName" FROM "UserDetails" WHERE "ChannelID" = %s'
-        selectparam = (str(channelid),)
+        select = 'SELECT "TotalReputation","FirstName" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" not like %s order by "TotalReputation" DESC LIMIT 20'
+        selectparam = (str(channelid),"Peer%")
         cur = con.cursor()
         cur.execute(select,selectparam)
         reps = cur.fetchall()
@@ -377,6 +377,7 @@ async def eventData(event):
         
 async def saveMessageIDs(messageid,channelid):
     if messageid is not None:
+        con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
             insert = 'INSERT INTO "Messages" ("MessageID","ChannelID") VALUES (%s,%s)'
@@ -387,6 +388,7 @@ async def saveMessageIDs(messageid,channelid):
 
 async def deleteMessagesFromDB(channelid):
     if channelid is not None:
+        con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
             delete = 'DELETE FROM "Messages" WHERE "ChannelID" = %s'
@@ -1404,7 +1406,7 @@ async def topRep(event):
         reps = await getTopRep(channelId)
         s=""
         for rep in reps:
-            s += rep[1] + "(" + str(rep[0]) + ")"
+            s += rep[1] + "(" + str(rep[0]) + ")" + "\n"
         await event.reply(s)
     except Exception as e:
         
@@ -1420,16 +1422,22 @@ async def clean(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        
+        channelEntity = await client.get_entity(channelId)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if isadmin or iscreator:
             messages = await getMessageIDs(channelId)
+            msgarr = []
             for message in messages:
-                await client.delete_messages(channelId,[str(message[0])])
-            await deleteMessagesFromDB(channelId)
-            await event.reply('Cleaned!')
+                msgid = message[0]
+                result = await client(functions.channels.DeleteMessagesRequest(
+                            channel=channelEntity,
+                            id=[int(msgid)]
+                        ))
+        print(result)
+            #await deleteMessagesFromDB(channelId)
+            #await event.reply('Cleaned!')
     except Exception as e:
         
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
