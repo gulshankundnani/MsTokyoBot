@@ -243,8 +243,8 @@ async def getUser(channelid,userid):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        select = 'SELECT "ChannelID","UserID" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s'
-        selectparam = (str(channelid),str(userid),)
+        select = 'SELECT "ChannelID","UserID" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s and "UserID" not like %s '
+        selectparam = (str(channelid),str(userid),"Peer%")
         cur = con.cursor()
         cur.execute(select,selectparam)
         uid = cur.fetchall()
@@ -275,8 +275,8 @@ async def updateMessageCount(channelid,userid,count):
         userEntity = await client.get_entity(userid)
         firstname = userEntity.first_name
         await AddUser(channelid,userid,firstname)
-        update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID" = %s and "UserID" = %s'
-        updateparam = (count,str(channelid),str(userid))
+        update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID" = %s and "UserID" = %s and "UserID" not like %s'
+        updateparam = (count,str(channelid),str(userid),"Peer%")
         cur = con.cursor()
         cur.execute(update,updateparam)
         con.commit()
@@ -288,8 +288,8 @@ async def getUserStats(channelid,userid):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        select = 'SELECT "TotalMessages","TotalReputation" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s'
-        selectparam = (str(channelid),str(userid))
+        select = 'SELECT "TotalMessages","TotalReputation" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s and "UserID" not like %s'
+        selectparam = (str(channelid),str(userid),"Peer%")
         cur = con.cursor()
         cur.execute(select,selectparam)
         stats = cur.fetchone()
@@ -302,8 +302,8 @@ async def updateRep(channelid,userid,rep):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        update = 'UPDATE "UserDetails" set "TotalReputation" = %s WHERE "ChannelID" = %s and "UserID" = %s'
-        updateparam = (rep,str(channelid),str(userid))
+        update = 'UPDATE "UserDetails" set "TotalReputation" = %s WHERE "ChannelID" = %s and "UserID" = %s and "UserID" not like %s'
+        updateparam = (rep,str(channelid),str(userid),"Peer%")
         cur = con.cursor()
         cur.execute(update,updateparam)
         con.commit()
