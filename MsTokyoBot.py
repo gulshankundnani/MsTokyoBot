@@ -85,6 +85,8 @@ createQueries()
 #gclient = gspread.authorize(creds)
 #sheet = gclient.open("Reputation").sheet1
 
+
+
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
 bot_token = '1318065263:AAF_brgyVqsq5GKVYczM6WaMrENdG8dJNLs'
@@ -236,9 +238,7 @@ async def loadSettings():
     settings = json.dumps(allSettings)
     return settings
 
-async def AddUser(channelid,userid,firstname):
-    #if con is None or con.closed == 0:
-    #    con = await getDbCon()
+async def getUser(channelid,userid):
     if channelid is not None and userid is not None:
         con = await getDbCon()
         while con.closed == 1:
@@ -247,7 +247,17 @@ async def AddUser(channelid,userid,firstname):
         selectparam = (str(channelid),str(userid),)
         cur = con.cursor()
         cur.execute(select,selectparam)
-        uid = cur.fetchone()
+        uid = cur.fetchall()
+        return uid
+
+async def AddUser(channelid,userid,firstname):
+    #if con is None or con.closed == 0:
+    #    con = await getDbCon()
+    if channelid is not None and userid is not None:
+        con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
+        uid = await getUser(channelid,userid)
         if uid is None:
             insert = 'INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName") VALUES (%s,%s,%s,%s,%s)'
             insertparam = (str(channelid),str(userid),0,0,firstname)
@@ -767,7 +777,6 @@ async def decreaseRep(event):
                 if repEnabled == True:
                     count = await getUserStats(channelId,fromUserId)
                     count = count[1] - 1
-                    await updateMessageCount(channelId,fromUserId,count)
                     await updateRep(channelId,toUserId,count)
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
         except Exception as e:
@@ -1369,7 +1378,7 @@ async def getArt(event):
         await event.reply("Wait ! Let me find art for you.")
         header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
         #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
-        url = "https://unsplash.com/s/photos/art"
+        url = "https://unsplash.com/s/photos/art?order_by=latest"
         response = requests.get(url,headers=header)
         soup = BeautifulSoup(response.content,"html.parser")
         soup1 = soup.find_all("img")
