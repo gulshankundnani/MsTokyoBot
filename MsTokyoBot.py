@@ -243,11 +243,11 @@ async def getUser(channelid,userid):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        select = 'SELECT "ChannelID","UserID" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s and "UserID" not like %s '
-        selectparam = (str(channelid),str(userid),"Peer%")
+        select = 'SELECT "ChannelID","UserID" FROM "UserDetails" WHERE "ChannelID_UserID" = %s'
+        selectparam = (str(channelid) + "_" + str(userid),)
         cur = con.cursor()
         cur.execute(select,selectparam)
-        uid = cur.fetchall()
+        uid = cur.fetchone()
         return uid
 
 async def AddUser(channelid,userid,firstname):
@@ -259,8 +259,8 @@ async def AddUser(channelid,userid,firstname):
             con = await getDbCon()
         uid = await getUser(channelid,userid)
         if uid is None:
-            insert = 'INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName") VALUES (%s,%s,%s,%s,%s)'
-            insertparam = (str(channelid),str(userid),0,0,firstname)
+            insert = 'INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName","ChannelID_UserID") VALUES (%s,%s,%s,%s,%s,%s)'
+            insertparam = (str(channelid),str(userid),0,0,firstname,str(channelid) + "_" + str(userid))
             cur = con.cursor()
             cur.execute(insert,insertparam)
             con.commit()
@@ -275,8 +275,8 @@ async def updateMessageCount(channelid,userid,count):
         userEntity = await client.get_entity(userid)
         firstname = userEntity.first_name
         await AddUser(channelid,userid,firstname)
-        update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID" = %s and "UserID" = %s and "UserID" not like %s'
-        updateparam = (count,str(channelid),str(userid),"Peer%")
+        update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID_UserID" = %s'
+        updateparam = (count,str(channelid) + "_" + str(userid),)
         cur = con.cursor()
         cur.execute(update,updateparam)
         con.commit()
@@ -288,8 +288,8 @@ async def getUserStats(channelid,userid):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        select = 'SELECT "TotalMessages","TotalReputation" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" = %s and "UserID" not like %s'
-        selectparam = (str(channelid),str(userid),"Peer%")
+        select = 'SELECT "TotalMessages","TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = %s'
+        selectparam = (str(channelid) + "_" + str(userid),)
         cur = con.cursor()
         cur.execute(select,selectparam)
         stats = cur.fetchone()
@@ -302,8 +302,8 @@ async def updateRep(channelid,userid,rep):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        update = 'UPDATE "UserDetails" set "TotalReputation" = %s WHERE "ChannelID" = %s and "UserID" = %s and "UserID" not like %s'
-        updateparam = (rep,str(channelid),str(userid),"Peer%")
+        update = 'UPDATE "UserDetails" set "TotalReputation" = %s WHERE "ChannelID_UserID" = %s'
+        updateparam = (rep,str(channelid) + "_" + str(userid),)
         cur = con.cursor()
         cur.execute(update,updateparam)
         con.commit()
@@ -327,8 +327,8 @@ async def getTopRep(channelid):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        select = 'SELECT "TotalReputation","FirstName" FROM "UserDetails" WHERE "ChannelID" = %s and "UserID" not like %s order by "TotalReputation" DESC LIMIT 20'
-        selectparam = (str(channelid),"Peer%")
+        select = 'SELECT "TotalReputation","FirstName" FROM "UserDetails" WHERE "ChannelID" = %s order by "TotalReputation" DESC LIMIT 20'
+        selectparam = (str(channelid),)
         cur = con.cursor()
         cur.execute(select,selectparam)
         reps = cur.fetchall()
@@ -419,7 +419,6 @@ async def deleteMessagesFromDB(channelid):
             cur = con.cursor()
             cur.execute(delete,deleteparam)
             con.commit()
-
 
 async def getMessageIDs(channelid):
     if channelid is not None:
@@ -735,7 +734,6 @@ async def increaseRep(event):
             else:
                 if repEnabled == True:
                     count = await getUserStats(channelId,fromUserId)
-                    time.sleep(1)
                     countRep = count[1] + 1
                     await updateRep(channelId,toUserId,countRep)
                     await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
@@ -777,7 +775,6 @@ async def decreaseRep(event):
             else:
                 if repEnabled == True:
                     count = await getUserStats(channelId,fromUserId)
-                    time.sleep(1)
                     count = count[1] - 1
                     await updateRep(channelId,toUserId,count)
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
@@ -963,7 +960,6 @@ async def getUserStat(event):
             s = "Total Messages : "+str(int(data[0]))+" \nTotal Reputation : " + str(data[1])
             await event.reply(s)
     except Exception as e:
-        await event.reply(e)
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
