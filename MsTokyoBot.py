@@ -48,6 +48,7 @@ import logging
 #import asyncio
 
 con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
+con.autocommit = True
 s = sched.scheduler(time.time, time.sleep)
 
 async def getDbCon():
