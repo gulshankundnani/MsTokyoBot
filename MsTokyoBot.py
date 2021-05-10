@@ -76,6 +76,7 @@ def createQueries():
         print("Done")
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 
@@ -321,6 +322,7 @@ async def deleteCommandMessage(channelid,msgid):
         #client(DeleteMessagesRequest(channelid, msgid))
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 async def getTopRep(channelid):
@@ -632,6 +634,7 @@ async def my_event_handler(event):
     
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.ChatAction)
@@ -740,6 +743,7 @@ async def increaseRep(event):
                     await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
         except Exception as e:
             logging.exception("message")
+            con.rollback()
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\--$'))
@@ -781,6 +785,7 @@ async def decreaseRep(event):
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
         except Exception as e:
             logging.exception("message")
+            con.rollback()
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.news [a-zA-Z]'))
@@ -1149,6 +1154,7 @@ async def startBot(event):
         await event.reply('Working now!')
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1171,6 +1177,7 @@ async def updateReputationSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
+                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1181,10 +1188,12 @@ async def updateReputationSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
+                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1210,6 +1219,7 @@ async def updateProfanitySettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
+                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1220,10 +1230,12 @@ async def updateProfanitySettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
+                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1246,6 +1258,7 @@ async def updateWelcomeSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
+                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1256,10 +1269,12 @@ async def updateWelcomeSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
+                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1282,6 +1297,7 @@ async def updateLeftSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
+                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1292,10 +1308,12 @@ async def updateLeftSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
+                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1319,6 +1337,7 @@ async def updateWelcomeText(event):
                 await event.reply('Settings Updated!')
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1342,6 +1361,7 @@ async def updateLeftText(event):
                 await event.reply('Settings Updated!')
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1446,6 +1466,7 @@ async def topRep(event):
         await event.reply(s)
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1475,6 +1496,7 @@ async def clean(event):
             await event.reply('Cleaned!')
     except Exception as e:
         logging.exception("message")
+        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
