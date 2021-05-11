@@ -248,10 +248,9 @@ async def AddUser(channelid,userid,firstname):
             cur = con.cursor()
             cur.execute(insert,insertparam)
             con.commit()
-            delete = 'DELETE FROM "UserDetails" WHERE "UserID" like %s'
-            deleteparam = (str("%Peer%"))
+            delete = 'DELETE FROM "UserDetails" WHERE "UserID" like "Peer%"'
             cur = con.cursor()
-            cur.execute(delete,deleteparam)
+            cur.execute(delete)
             con.commit()
 
 async def updateMessageCount(channelid,userid,count):
