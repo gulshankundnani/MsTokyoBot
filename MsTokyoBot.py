@@ -249,7 +249,7 @@ async def AddUser(channelid,userid,firstname):
             cur.execute(insert,insertparam)
             con.commit()
             delete = 'DELETE FROM "UserDetails" WHERE "UserID" like %s'
-            deleteparam = ("%Peer%")
+            deleteparam = (str("%Peer%"))
             cur = con.cursor()
             cur.execute(delete,deleteparam)
             con.commit()
@@ -723,7 +723,10 @@ async def increaseRep(event):
             else:
                 if repEnabled == True:
                     count = await getUserStats(channelId,fromUserId)
-                    countRep = count[1] + 1
+                    if count is None:
+                        countRep = 1
+                    else:
+                        countRep = count[1] + 1
                     await updateRep(channelId,toUserId,countRep)
                     await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
         except Exception as e:
@@ -764,7 +767,10 @@ async def decreaseRep(event):
             else:
                 if repEnabled == True:
                     count = await getUserStats(channelId,fromUserId)
-                    count = count[1] - 1
+                    if count is None:
+                        countRep = 0
+                    else:
+                        countRep = count[1] - 1
                     await updateRep(channelId,toUserId,count)
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
         except Exception as e:
