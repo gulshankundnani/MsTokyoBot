@@ -248,7 +248,7 @@ async def AddUser(channelid,userid,firstname):
             cur = con.cursor()
             cur.execute(insert,insertparam)
             con.commit()
-            delete = 'DELETE FROM "UserDetails" WHERE "UserID" like "Peer%"'
+            delete = 'DELETE FROM "UserDetails" WHERE "UserID" like \'Peer%\''
             cur = con.cursor()
             cur.execute(delete)
             con.commit()
