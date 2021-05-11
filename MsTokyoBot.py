@@ -867,7 +867,7 @@ async def getUserStat(event):
         if data is not None:
             for row in data:
                 s = "Total Reputation : "+str(int(row[0]))+" \nTotal Messages : " + str(row[1])
-            await event.reply(s)
+                await event.reply(s)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
