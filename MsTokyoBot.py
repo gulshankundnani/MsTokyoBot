@@ -639,7 +639,7 @@ async def increaseRep(event):
             logging.exception("message")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-@client.on(events.NewMessage(pattern=r'^\--$'))
+@client.on(events.NewMessage(pattern=r'^-+$'))
 async def decreaseRep(event):
     replytomsgid = event.message.reply_to_msg_id
     if replytomsgid is not None:
@@ -859,10 +859,13 @@ async def getUserStat(event):
 
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
-        data = await getUserStats(channelId,fromUserId)
-        logging.info(data)
+        cur = con.cursor()
+        select = 'SELECT "TotalReputation","TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = %s'
+        selectparam = (str(channelid) + "_" + str(fromUserId),)
+        cur.execute(select,selectparam)
+        data = cur.fetchall()
         if data is not None:
-            s = "Total Messages : "+str(int(data[0]))+" \nTotal Reputation : " + str(data[1])
+            s = "Total Reputation : "+str(int(data[0]))+" \nTotal Messages : " + str(data[1])
             await event.reply(s)
     except Exception as e:
         logging.exception("message")
