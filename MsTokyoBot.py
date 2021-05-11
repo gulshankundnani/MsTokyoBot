@@ -865,7 +865,8 @@ async def getUserStat(event):
         cur.execute(select,selectparam)
         data = cur.fetchall()
         if data is not None:
-            s = "Total Reputation : "+str(int(data[0]))+" \nTotal Messages : " + str(data[1])
+            for row in data:
+                s = "Total Reputation : "+str(int(row[0]))+" \nTotal Messages : " + str(row[1])
             await event.reply(s)
     except Exception as e:
         logging.exception("message")
