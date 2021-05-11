@@ -3,19 +3,12 @@ from telethon import functions, types
 from telethon.tl.types import *
 from telethon.tl.functions.messages import *
 from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin
-from telethon.tl.functions.channels import DeleteMessagesRequest
-from telethon.tl.functions.channels import EditBannedRequest
-from telethon.tl.functions.channels import GetParticipantRequest
-from telethon.tl.functions.messages import (GetHistoryRequest)
-from telethon.tl.functions.messages import (GetMessagesRequest)
-from telethon.tl.functions.messages import (SendMediaRequest)
-from telethon.tl.functions.messages import SearchRequest
+from telethon.tl.functions.channels import DeleteMessagesRequest,EditBannedRequest,GetParticipantRequest
+from telethon.tl.functions.messages import GetHistoryRequest,GetMessagesRequest,SendMediaRequest,SearchRequest
 from telethon import errors
 from googletrans import Translator
 from bs4 import BeautifulSoup
 import html
-#import openpyxl
-#from openpyxl import Workbook
 import os
 import sys
 import time
@@ -45,10 +38,8 @@ import io
 import base64
 import logging
 #import aiml
-#import asyncio
 
 con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
-con.autocommit = True
 s = sched.scheduler(time.time, time.sleep)
 
 async def getDbCon():
@@ -76,18 +67,9 @@ def createQueries():
         print("Done")
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-
 createQueries()
-
-#scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-#creds = ServiceAccountCredentials.from_json_keyfile_name("MsTokyoBot-462b786ad30e.json",scope)
-#gclient = gspread.authorize(creds)
-#sheet = gclient.open("Reputation").sheet1
-
-
 
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
@@ -266,6 +248,11 @@ async def AddUser(channelid,userid,firstname):
             cur = con.cursor()
             cur.execute(insert,insertparam)
             con.commit()
+            delete = 'DELETE FROM "UserDetails" WHERE "UserID" like %s'
+            deleteparam = ("%Peer%")
+            cur = con.cursor()
+            cur.execute(delete,deleteparam)
+            con.commit()
 
 async def updateMessageCount(channelid,userid,count):
     #if con is None or con.closed == 0:
@@ -322,7 +309,6 @@ async def deleteCommandMessage(channelid,msgid):
         #client(DeleteMessagesRequest(channelid, msgid))
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 async def getTopRep(channelid):
@@ -634,7 +620,6 @@ async def my_event_handler(event):
     
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.ChatAction)
@@ -743,7 +728,6 @@ async def increaseRep(event):
                     await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
         except Exception as e:
             logging.exception("message")
-            con.rollback()
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\--$'))
@@ -785,7 +769,6 @@ async def decreaseRep(event):
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
         except Exception as e:
             logging.exception("message")
-            con.rollback()
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.news [a-zA-Z]'))
@@ -1154,7 +1137,6 @@ async def startBot(event):
         await event.reply('Working now!')
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1177,7 +1159,6 @@ async def updateReputationSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
-                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1188,12 +1169,10 @@ async def updateReputationSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
-                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1219,7 +1198,6 @@ async def updateProfanitySettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
-                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1230,12 +1208,10 @@ async def updateProfanitySettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
-                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1258,7 +1234,6 @@ async def updateWelcomeSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
-                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1269,12 +1244,10 @@ async def updateWelcomeSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
-                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1297,7 +1270,6 @@ async def updateLeftSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
-                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
 
@@ -1308,12 +1280,10 @@ async def updateLeftSettings(event):
                 await event.reply('Settings Updated!')
             except Exception as e:
                 logging.exception("message")
-                con.rollback()
                 print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
                 
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1337,7 +1307,6 @@ async def updateWelcomeText(event):
                 await event.reply('Settings Updated!')
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1361,7 +1330,6 @@ async def updateLeftText(event):
                 await event.reply('Settings Updated!')
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1466,7 +1434,6 @@ async def topRep(event):
         await event.reply(s)
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
@@ -1496,7 +1463,6 @@ async def clean(event):
             await event.reply('Cleaned!')
     except Exception as e:
         logging.exception("message")
-        con.rollback()
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
