@@ -513,109 +513,6 @@ async def my_event_handler(event):
                 except Exception as e:
                     logging.exception("message")
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-
-        #if toUserId is not None and toUserId == myID:
-        #    bot_response = kernel.respond(event.raw_text.lower())
-        #    await event.reply(bot_response)
-
-        #if event.raw_text.lower() == ".langcodes":
-        #    await langcodes(event)
-
-        #if event.raw_text.lower() == "++":
-        #    await increaseRep(event)
-
-        #if event.raw_text.lower() == "--":
-        #    await decreaseRep(event)
-
-        #if event.raw_text.lower().startswith('.news'):
-        #    await getNewsData(event)
-
-        #if event.raw_text.lower().startswith('.what'):
-        #    await getMeaning(event)
-
-        #if event.raw_text.lower() == '.cmd':
-        #    await getCommands(event)
-
-        #if event.raw_text.lower() == '.m':
-        #    await mute(event)
-
-        #if event.raw_text.lower() == '.um':
-        #    await unmute(event)
-
-        #if event.raw_text.lower() == '.b':
-        #    await ban(event)
-
-        #if event.raw_text.lower() == '.ub':
-        #    await unban(event)
-
-        #if event.raw_text.lower() == '.stat':
-        #    await getUserStat(event)
-
-        #if event.raw_text.lower() == '.joke':
-        #    await getJoke(event)
-
-        #if event.raw_text.lower() == '.yomama':
-        #    await getYomama(event)
-
-        #if event.raw_text.lower() == '.loc':
-        #    await getLocation(event)
-
-        #if event.raw_text.lower() == '.quote':
-        #    await getQuote(event)
-
-        #if event.raw_text.lower() == '.bored':
-        #    await getActivity(event)
-
-        #if event.raw_text.lower() == '.insult':
-        #    await getInsulted(event)
-
-        #if event.raw_text.lower() == '.advice':
-        #    await getAdvice(event)
-
-        #if event.raw_text.lower() == '.dadjoke':
-        #    await getDadJoke(event)
-
-        #if event.raw_text.lower() == '.ping':
-        #    await getPing(event)
-
-        #if event.raw_text.lower() == '.startbot':
-        #    await startBot(event)
-
-        #if event.raw_text.lower().startswith('.reputation'):
-        #    await updateReputationSettings(event)
-
-        #if event.raw_text.lower().startswith('.profanity'):
-        #    await updateProfanitySettings(event)
-
-        #if event.raw_text.lower().startswith('.welcome'):
-        #    await updateWelcomeSettings(event)
-
-        #if event.raw_text.lower().startswith('.left'):
-        #    await updateLeftSettings(event)
-
-        #if event.raw_text.lower().startswith('.welcometext'):
-        #    await updateWelcomeText(event)
-
-        #if event.raw_text.lower().startswith('.lefttext'):
-        #    await updateLeftText(event)
-
-        #if event.raw_text.lower().startswith('.profaneadd'):
-        #    await addProfaneWord(event)
-
-        #if event.raw_text.lower() == '.art':
-        #    await getArt(event)
-
-        #if event.raw_text.lower() == '.trv':
-        #    await getTrv(event)
-
-        #if event.raw_text.lower() == '.toprep':
-        #    await toprep(event)
-
-        #if event.raw_text.lower() == '.clean':
-        #    await clean(event)
-
-        #if event.raw_text.lower() == '.cmd':
-        #    await getCommands(event)
     
     except Exception as e:
         logging.exception("message")
@@ -722,6 +619,7 @@ async def increaseRep(event):
             else:
                 if repEnabled == True:
                     count = await getUserStats(channelId,fromUserId)
+                    print(count)
                     if count is None:
                         countRep = 1
                     else:
@@ -766,6 +664,7 @@ async def decreaseRep(event):
             else:
                 if repEnabled == True:
                     count = await getUserStats(channelId,fromUserId)
+                    print(count)
                     if count is None:
                         countRep = 0
                     else:
@@ -950,6 +849,7 @@ async def getUserStat(event):
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         data = await getUserStats(channelId,fromUserId)
+        print(data)
         if data is not None:
             s = "Total Messages : "+str(int(data[0]))+" \nTotal Reputation : " + str(data[1])
             await event.reply(s)
@@ -957,7 +857,6 @@ async def getUserStat(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.joke$'))
 async def getJoke(event):
     try:
