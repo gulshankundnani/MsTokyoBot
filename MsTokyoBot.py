@@ -55,6 +55,9 @@ def createQueries():
         queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,PRIMARY KEY ("SettingsID")) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
         queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
         queries.append(""" CREATE TABLE IF NOT EXISTS "Messages"("ChannelID" text,"MessageID" text) WITH (OIDS = FALSE); ALTER TABLE "Messages" OWNER to postgres; """)
+        queries.append(""" -- FUNCTION: DecreaseReputationCount(text) -- DROP FUNCTION "DecreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "DecreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") - 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "DecreaseReputationCount"(text) OWNER TO postgres; """)
+        queries.append(""" -- FUNCTION: IncreaseReputationCount(text) -- DROP FUNCTION "IncreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "IncreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseReputationCount"(text) OWNER TO postgres; """)
+        queries.append(""" -- FUNCTION: IncreaseMessageCount(text) -- DROP FUNCTION "IncreaseMessageCount"(text); CREATE OR REPLACE FUNCTION "IncreaseMessageCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalMessages" = (SELECT "TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseMessageCount"(text) OWNER TO postgres; """)
         con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
         cur = con.cursor()
         cur.execute(tables)
@@ -263,11 +266,13 @@ async def updateMessageCount(channelid,userid,count):
         userEntity = await client.get_entity(userid)
         firstname = userEntity.first_name
         await AddUser(channelid,userid,firstname)
-        update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID_UserID" = %s'
-        updateparam = (count,str(channelid) + "_" + str(userid),)
-        cur = con.cursor()
-        cur.execute(update,updateparam)
-        con.commit()
+        cursor.callproc('IncreaseMessageCount', [str(channelid) + "_" + str(userid), ])
+
+        #update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID_UserID" = %s'
+        #updateparam = (count,str(channelid) + "_" + str(userid),)
+        #cur = con.cursor()
+        #cur.execute(update,updateparam)
+        #con.commit()
 
 async def getUserStats(channelid,userid):
     #if con is None or con.closed == 0:
@@ -448,12 +453,14 @@ async def my_event_handler(event):
         welcomeEnabled = False
         leftEnabled = False
         fromUserId = event.from_id
+        cur = con.cursor()
+        cur.callproc('"IncreaseMessageCount"', [str(channelId) + "_" + str(toUserId), ])
         count = await getUserStats(channelId,fromUserId)
-        if count is None:
-            count = 1
-        else:
-            count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
+        #if count is None:
+        #    count = 1
+        #else:
+        #    count = count[0] + 1
+        #await updateMessageCount(channelId,fromUserId,count)
 
         if len(settings) == 0:
             await loadSettings()
@@ -618,14 +625,16 @@ async def increaseRep(event):
                     await event.reply('Nice Try, But NO ! You cannot give reputation to yourself !')
             else:
                 if repEnabled == True:
+                    cur = con.cursor()
+                    cur.callproc('"IncreaseReputationCount"', [str(channelId) + "_" + str(toUserId), ])
                     count = await getUserStats(channelId,fromUserId)
                     print(count)
-                    if count is None:
-                        countRep = 1
-                    else:
-                        countRep = count[1] + 1
-                    await updateRep(channelId,toUserId,countRep)
-                    await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(countRep))
+                    #if count is None:
+                    #    countRep = 1
+                    #else:
+                    #    countRep = count[1] + 1
+                    #await updateRep(channelId,toUserId,countRep)
+                    await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName)
         except Exception as e:
             logging.exception("message")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -663,14 +672,16 @@ async def decreaseRep(event):
                     await event.reply('Nice Try, But NO ! You cannot give reputation to yourself !')
             else:
                 if repEnabled == True:
+                    cur = con.cursor()
+                    cur.callproc('"DecreaseReputationCount"', [str(channelId) + "_" + str(toUserId), ])
                     count = await getUserStats(channelId,fromUserId)
                     print(count)
-                    if count is None:
-                        countRep = 0
-                    else:
-                        countRep = count[1] - 1
-                    await updateRep(channelId,toUserId,count)
-                    await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName + ' . Total Likes : ' + str(count))
+                    #if count is None:
+                    #    countRep = 0
+                    #else:
+                    #    countRep = count[1] - 1
+                    #await updateRep(channelId,toUserId,count)
+                    await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName)
         except Exception as e:
             logging.exception("message")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -849,7 +860,7 @@ async def getUserStat(event):
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         data = await getUserStats(channelId,fromUserId)
-        print(data)
+        logging.info(data)
         if data is not None:
             s = "Total Messages : "+str(int(data[0]))+" \nTotal Reputation : " + str(data[1])
             await event.reply(s)
