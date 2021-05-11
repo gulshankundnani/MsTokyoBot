@@ -861,7 +861,7 @@ async def getUserStat(event):
         channelId = event.message.to_id.channel_id
         cur = con.cursor()
         select = 'SELECT "TotalReputation","TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = %s'
-        selectparam = (str(channelid) + "_" + str(fromUserId),)
+        selectparam = (str(channelId) + "_" + str(fromUserId),)
         cur.execute(select,selectparam)
         data = cur.fetchall()
         if data is not None:
