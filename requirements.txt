@@ -138,4 +138,3 @@ aiml==0.8.6
 better-profanity
 psycopg2
 python-aiml==0.9.3
-pyaiml==1.0
