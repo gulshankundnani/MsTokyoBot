@@ -1,5 +1,5 @@
 
-FROM python:3.8
+FROM python:3.8-windowsservercore-1809
 
 
 RUN git clone https://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:x-oauth-basic@github.com/gulshankundnani/MsTokyoBot.git
@@ -12,7 +12,7 @@ WORKDIR /app
 # just this file first to cache the pip install step when code changes
 COPY requirements.txt .
 COPY MsTokyoBot.py .
-#COPY aiml .
+COPY aiml .
 
 #install dependencies
 RUN pip install -r requirements.txt
