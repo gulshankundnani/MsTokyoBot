@@ -1356,6 +1356,7 @@ async def topRep(event):
         s=""
         for rep in reps:
             s += rep[1] + "(" + str(rep[0]) + ")" + "\n"
+        if s != "" or s is not None:
             await event.reply(s)
     except Exception as e:
         logging.exception("message")
