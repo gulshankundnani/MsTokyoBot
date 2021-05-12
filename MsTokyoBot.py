@@ -541,6 +541,7 @@ async def chat_action_handler(event):
         leftText = ""
         print(event)
         userEntity = await client.get_entity(event.user_id)
+        await AddUser(channelId,event.user_id,userEntity.first_name)
         await loadSettings()
         if len(settings) != 0:
             allsettings = json.loads(settings)
