@@ -37,7 +37,7 @@ from io import BytesIO
 import io
 import base64
 import logging
-#import aiml
+import aiml
 
 con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 s = sched.scheduler(time.time, time.sleep)
@@ -116,13 +116,13 @@ cmds += ".cmd : Get list of commands \n"
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
 
-#kernel = aiml.Kernel()
+kernel = aiml.Kernel()
 
-#if os.path.isfile("bot_brain.brn"):
-#	kernel.bootstrap(brainFile = "bot_brain.brn")
-#else:
-#	kernel.bootstrap(learnFiles = os.path.abspath("aiml/std-startup.xml"), commands = "load aiml b")
-#	kernel.saveBrain("bot_brain.brn")
+if os.path.isfile("bot_brain.brn"):
+	kernel.bootstrap(brainFile = "bot_brain.brn")
+else:
+	kernel.bootstrap(learnFiles = os.path.abspath("aiml/std-startup.xml"), commands = "load aiml b")
+	kernel.saveBrain("bot_brain.brn")
 
 settings = []
 
@@ -520,6 +520,10 @@ async def my_event_handler(event):
                 except Exception as e:
                     logging.exception("message")
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                    
+        if myID == toUserId:
+            bot_response = kernel.respond(event.raw_text.lower())
+            await event.reply(bot_response)
     
     except Exception as e:
         logging.exception("message")
