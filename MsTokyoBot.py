@@ -1356,7 +1356,7 @@ async def topRep(event):
         s=""
         for rep in reps:
             s += rep[1] + "(" + str(rep[0]) + ")" + "\n"
-        await event.reply(s)
+            await event.reply(s)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
