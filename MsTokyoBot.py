@@ -162,7 +162,7 @@ async def AddClient(ChannelEntity):
         cur.execute(select,selectparam)
         id = cur.fetchone()
         if id is None:
-            insert = 'INSERT INTO "ChannelDetails" ("ChannelId","ChannelTitle","ChannelUsername","AccessHash","Active") VALUES (%s,%s,%s,%s,%s) ON CONFLICT("ChannelId") DO NOTHING'
+            insert = 'INSERT INTO "ChannelDetails" ("ChannelId","ChannelTitle","ChannelUsername","AccessHash","Active") VALUES (%s,%s,%s,%s,%s)'
             insertparam = (ChannelEntity.id,ChannelEntity.title,ChannelEntity.username,ChannelEntity.access_hash,True)
             cur = con.cursor()
             cur.execute(insert,insertparam)
@@ -872,6 +872,8 @@ async def getUserStat(event):
             for row in data:
                 s = "Total Reputation : "+str(int(row[0]))+" \nTotal Messages : " + str(row[1])
                 await event.reply(s)
+        else:
+            await event.reply("None")
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
