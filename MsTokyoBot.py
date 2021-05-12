@@ -860,9 +860,9 @@ async def getUserStat(event):
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         cur = con.cursor()
-        select = 'SELECT "TotalReputation","TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = %s'
-        selectparam = (str(channelId) + "_" + str(fromUserId),)
-        cur.execute(select,selectparam)
+        selectparam = (str(channelId) + "_" + str(fromUserId))
+        select = """ SELECT "TotalReputation","TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = '{}' """.format(selectparam)
+        cur.execute(select)
         data = cur.fetchall()
         if data is not None:
             for row in data:
@@ -1051,7 +1051,7 @@ async def startBot(event):
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         await event.reply('Wait!')
-        
+        channelEntity = await client.get_entity(channelId)
         await AddClient(channelEntity)
         await event.reply('Working now!')
     except Exception as e:
