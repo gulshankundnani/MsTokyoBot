@@ -275,7 +275,7 @@ async def updateMessageCount(channelid,userid,count):
         userEntity = await client.get_entity(userid)
         firstname = userEntity.first_name
         await AddUser(channelid,userid,firstname)
-        cursor.callproc('IncreaseMessageCount', [str(channelid) + "_" + str(userid), ])
+        cursor.callproc('"IncreaseMessageCount"', [str(channelid) + "_" + str(userid), ])
         con.commit()
         cursor.close()
 
