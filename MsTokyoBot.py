@@ -646,6 +646,7 @@ async def increaseRep(event):
                     await event.reply('Nice Try, But NO ! You cannot give reputation to yourself !')
             else:
                 if repEnabled == True:
+                    await AddUser(channelId,toUserId,toUserFirstName)
                     cur = con.cursor()
                     cur.callproc('"IncreaseReputationCount"', [str(channelId) + "_" + str(toUserId), ])
                     con.commit()
@@ -694,6 +695,7 @@ async def decreaseRep(event):
                     await event.reply('Nice Try, But NO ! You cannot give reputation to yourself !')
             else:
                 if repEnabled == True:
+                    await AddUser(channelId,toUserId,toUserFirstName)
                     cur = con.cursor()
                     cur.callproc('"DecreaseReputationCount"', [str(channelId) + "_" + str(toUserId), ])
                     con.commit()
