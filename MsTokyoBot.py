@@ -269,6 +269,7 @@ async def updateMessageCount(channelid,userid,count):
     #    con = await getDbCon()
     if channelid is not None and userid is not None:
         con = await getDbCon()
+        cursor = con.cursor()
         while con.closed == 1:
             con = await getDbCon()
         userEntity = await client.get_entity(userid)
@@ -276,6 +277,7 @@ async def updateMessageCount(channelid,userid,count):
         await AddUser(channelid,userid,firstname)
         cursor.callproc('IncreaseMessageCount', [str(channelid) + "_" + str(userid), ])
         con.commit()
+        cursor.close()
 
         #update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID_UserID" = %s'
         #updateparam = (count,str(channelid) + "_" + str(userid),)
