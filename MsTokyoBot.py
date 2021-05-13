@@ -205,13 +205,13 @@ async def UpdateClientSettings(channelid,key,value):
             if key == 'Welcome' and value == 'false':
                 update = 'UPDATE "ChannelSettings" set "Welcome" = False WHERE "ChannelID" = %s'
             if key == 'WelcomeText' and value is not None:
-                update = 'UPDATE "ChannelSettings" set "WelcomeText" = '+str(value)+' WHERE "ChannelID" = %s'
+                update = 'UPDATE "ChannelSettings" set "WelcomeText" = \''+str(value)+'\' WHERE "ChannelID" = %s'
             if key == 'Left' and value == 'true':
                 update = 'UPDATE "ChannelSettings" set "Left" = True WHERE "ChannelID" = %s'
             if key == 'Left' and value == 'false':
                 update = 'UPDATE "ChannelSettings" set "Left" = False WHERE "ChannelID" = %s'
             if key == 'LeftText' and value is not None:
-                update = 'UPDATE "ChannelSettings" set "LeftText" = '+str(value)+' WHERE "ChannelID" = %s'
+                update = 'UPDATE "ChannelSettings" set "LeftText" = \''+str(value)+'\' WHERE "ChannelID" = %s'
             cur = con.cursor()
             updateparam = (str(channelid),)
             cur.execute(update,updateparam)
@@ -1246,7 +1246,7 @@ async def updateLeftSettings(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
-@client.on(events.NewMessage(pattern=r'^\.welcometext \w+$'))
+@client.on(events.NewMessage(pattern=r'^\.welcometext (.*)?$'))
 async def updateWelcomeText(event):
     try:
         con = await getDbCon()
@@ -1269,7 +1269,7 @@ async def updateWelcomeText(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
-@client.on(events.NewMessage(pattern=r'^\.lefttext \w+$'))
+@client.on(events.NewMessage(pattern=r'^\.lefttext (.*)?$'))
 async def updateLeftText(event):
     try:
         con = await getDbCon()
