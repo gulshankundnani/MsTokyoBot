@@ -585,7 +585,6 @@ async def chat_action_handler(event):
         leftEnabled = False
         welcomeText = ""
         leftText = ""
-        print(event)
         userEntity = await client.get_entity(event.user_id)
         await AddUser(channelId,event.user_id,userEntity.first_name)
         await loadSettings()
@@ -631,9 +630,9 @@ async def chat_action_handler(event):
 
         if (event.user_left or event.user_kicked) and leftEnabled:
             if "first_name" in leftText:
-                welcomeText = leftText.replace("first_name",str(userEntity.first_name))
+                leftText = leftText.replace("first_name",str(userEntity.first_name))
             if "user_name" in leftText:
-                welcomeText = leftText.replace("user_name",str(userEntity.username))
+                leftText = leftText.replace("user_name",str(userEntity.username))
             await event.reply(leftText)
             header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
             #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
