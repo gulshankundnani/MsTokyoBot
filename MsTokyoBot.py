@@ -1425,10 +1425,11 @@ async def getme(event):
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         reps = await getUserStats(channelId,fromUserId)
-        s=""
-        s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
-        if s != "" or s is not None:
-            await event.reply(s)
+        if reps is not None:
+            s=""
+            s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
+            if s != "" or s is not None:
+                await event.reply(s)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -1448,10 +1449,11 @@ async def getyou(event):
             toUserName = toUserEntity.username
             toUserFirstName = toUserEntity.first_name
             reps = await getUserStats(channelId,toUserId)
-            s=""
-            s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
-            if s != "" or s is not None:
-                await event.reply(s)
+            if reps is not None:
+                s=""
+                s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
+                if s != "" or s is not None:
+                    await event.reply(s)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
