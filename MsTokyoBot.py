@@ -255,8 +255,7 @@ async def AddUser(channelid,userid,firstname):
         uid = await getUser(channelid,userid)
         if uid is None:
             cur = con.cursor()
-            insertparam = (str(channelid),str(userid),0,0,firstname,str(channelid) + "_" + str(userid))
-            cur.callproc('"InsertUser"',[insertparam])
+            cur.callproc('"InsertUser"',[str(channelid),str(userid),0,0,firstname,str(channelid) + "_" + str(userid)])
             con.commit()
             delete = 'DELETE FROM "UserDetails" WHERE "UserID" like \'Peer%\''
             cur = con.cursor()
