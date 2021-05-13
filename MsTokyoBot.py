@@ -39,11 +39,12 @@ import base64
 import logging
 #import aiml
 
-con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
+#con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
+global con
 s = sched.scheduler(time.time, time.sleep)
 
 async def getDbCon():
-    #conn = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
+    con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
     return con
 
 def createQueries():
@@ -62,12 +63,13 @@ def createQueries():
         cur = con.cursor()
         cur.execute(tables)
         tabData = cur.fetchall()
-        if tabData is None:
+        if tabData is None:        
             for query in queries:
                 cur.execute(query)
                 con.commit()
                 time.sleep(1)
         print("Done")
+        cur.close()
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -167,7 +169,8 @@ async def AddClient(ChannelEntity):
             cur = con.cursor()
             cur.execute(insert,insertparam)
             con.commit()
-            
+        cur.close()
+
 async def UpdateClientSettings(channelid,key,value):
     #if con is None or con.closed == 0:
     #    con = await getDbCon()
@@ -186,6 +189,7 @@ async def UpdateClientSettings(channelid,key,value):
             cur = con.cursor()
             cur.execute(insert,insertparam)
             con.commit()
+            cur.close()
         else:
             if key == 'Profanity' and value == 'true':
                 update = 'UPDATE "ChannelSettings" set "Profanity" = True WHERE "ChannelID" = %s'
@@ -212,6 +216,7 @@ async def UpdateClientSettings(channelid,key,value):
             cur.execute(update,updateparam)
             con.commit()
             await loadSettings()
+            cur.close()
 
 async def loadSettings():
     con = await getDbCon()
@@ -223,6 +228,7 @@ async def loadSettings():
     allSettings = cur.fetchall()
     global settings
     settings = json.dumps(allSettings)
+    cur.close()
     return settings
 
 async def getUser(channelid,userid):
@@ -235,6 +241,7 @@ async def getUser(channelid,userid):
         cur = con.cursor()
         cur.execute(select,selectparam)
         uid = cur.fetchone()
+        cur.close()
         return uid
 
 async def AddUser(channelid,userid,firstname):
@@ -255,6 +262,7 @@ async def AddUser(channelid,userid,firstname):
             cur = con.cursor()
             cur.execute(delete)
             con.commit()
+            cur.close()
 
 async def updateMessageCount(channelid,userid,count):
     #if con is None or con.closed == 0:
@@ -267,6 +275,7 @@ async def updateMessageCount(channelid,userid,count):
         firstname = userEntity.first_name
         await AddUser(channelid,userid,firstname)
         cursor.callproc('IncreaseMessageCount', [str(channelid) + "_" + str(userid), ])
+        con.commit()
 
         #update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID_UserID" = %s'
         #updateparam = (count,str(channelid) + "_" + str(userid),)
@@ -286,6 +295,7 @@ async def getUserStats(channelid,userid):
         cur = con.cursor()
         cur.execute(select,selectparam)
         stats = cur.fetchone()
+        cur.close()
         return stats
 
 async def updateRep(channelid,userid,rep):
@@ -300,6 +310,7 @@ async def updateRep(channelid,userid,rep):
         cur = con.cursor()
         cur.execute(update,updateparam)
         con.commit()
+        cur.close()
 
 async def getTriviaCategory():
     s=""
@@ -325,6 +336,7 @@ async def getTopRep(channelid):
         cur = con.cursor()
         cur.execute(select,selectparam)
         reps = cur.fetchall()
+        cur.close()
         return reps
 
 async def getNews(term):
@@ -401,6 +413,7 @@ async def saveMessageIDs(messageid,channelid):
             cur = con.cursor()
             cur.execute(insert,insertparam)
             con.commit()
+            cur.close()
 
 async def deleteMessagesFromDB(channelid):
     if channelid is not None:
@@ -412,6 +425,7 @@ async def deleteMessagesFromDB(channelid):
             cur = con.cursor()
             cur.execute(delete,deleteparam)
             con.commit()
+            cur.close()
 
 async def getMessageIDs(channelid):
     if channelid is not None:
@@ -423,6 +437,7 @@ async def getMessageIDs(channelid):
         cur = con.cursor()
         cur.execute(select,selectparam)
         reps = cur.fetchall()
+        cur.close()
         return reps
 
 @client.on(events.NewMessage)
@@ -454,13 +469,13 @@ async def my_event_handler(event):
         leftEnabled = False
         fromUserId = event.from_id
         cur = con.cursor()
-        cur.callproc('"IncreaseMessageCount"', [str(channelId) + "_" + str(toUserId), ])
+        #cur.callproc('"IncreaseMessageCount"', [str(channelId) + "_" + str(toUserId), ])
         count = await getUserStats(channelId,fromUserId)
         #if count is None:
         #    count = 1
         #else:
         #    count = count[0] + 1
-        #await updateMessageCount(channelId,fromUserId,count)
+        await updateMessageCount(channelId,fromUserId,count)
 
         if len(settings) == 0:
             await loadSettings()
@@ -520,10 +535,10 @@ async def my_event_handler(event):
                 except Exception as e:
                     logging.exception("message")
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-                    
-#        if myID == toUserId:
-#            bot_response = kernel.respond(event.raw_text.lower())
-#            await event.reply(bot_response)
+
+        #if myID == toUserId:
+        #    bot_response = kernel.respond(event.raw_text.lower())
+        #    await event.reply(bot_response)
     
     except Exception as e:
         logging.exception("message")
@@ -632,6 +647,7 @@ async def increaseRep(event):
                 if repEnabled == True:
                     cur = con.cursor()
                     cur.callproc('"IncreaseReputationCount"', [str(channelId) + "_" + str(toUserId), ])
+                    con.commit()
                     count = await getUserStats(channelId,fromUserId)
                     print(count)
                     #if count is None:
@@ -679,6 +695,7 @@ async def decreaseRep(event):
                 if repEnabled == True:
                     cur = con.cursor()
                     cur.callproc('"DecreaseReputationCount"', [str(channelId) + "_" + str(toUserId), ])
+                    con.commit()
                     count = await getUserStats(channelId,fromUserId)
                     print(count)
                     #if count is None:
@@ -873,8 +890,7 @@ async def getUserStat(event):
             for row in data:
                 s = "Total Reputation : "+str(int(row[0]))+" \nTotal Messages : " + str(row[1])
                 await event.reply(s)
-        else:
-            await event.reply("None")
+        cur.close()
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -1357,7 +1373,8 @@ async def topRep(event):
         s=""
         for rep in reps:
             s += rep[1] + "(" + str(rep[0]) + ")" + "\n"
-        await event.reply("Toprep\n"+s)
+        if s != "" or s is not None:
+            await event.reply(s)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
