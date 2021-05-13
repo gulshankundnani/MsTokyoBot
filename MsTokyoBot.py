@@ -109,9 +109,9 @@ cmds += ".profaneadd : Add banned or profanity word eg: profaneadd word \n"
 #cmds += ".profanedel : Add banned or profanity word eg: profanedel word \n"
 #cmds += ".trvcat : Get trivia categories \n"
 cmds += ".welcome : use true/false to enable or disable welcome \n"
-cmds += ".welcometext : set welcome text eg: welcome {firstname/username} \n"
+cmds += ".welcometext : set welcome text eg: welcome first_name/user_name \n"
 cmds += ".left : use true/false to enable or disable welcome \n"
-cmds += ".lefttext : set left text \n"
+cmds += ".lefttext : set left text eg: first_name/user_name left \n"
 cmds += ".art : Get art pics \n"
 #cmds += ".clean : Clean the group. Make sure you have disabled messages before using the command. \n"
 cmds += ".cmd : Get list of commands \n"
@@ -595,17 +595,17 @@ async def chat_action_handler(event):
                         leftEnabled = False
 
         if (event.user_joined or event.user_added) and welcomeEnabled:
-            if "{firstname}" in welcomeText:
-                welcomeText = welcomeText.replace("{firstname}",str(userEntity.first_name))
-            if "{username}" in welcomeText:
-                welcomeText = welcomeText.replace("{username}",str(userEntity.username))
+            if "first_name" in welcomeText:
+                welcomeText = welcomeText.replace("first_name",str(userEntity.first_name))
+            if "user_name" in welcomeText:
+                welcomeText = welcomeText.replace("user_name",str(userEntity.username))
             await event.reply(welcomeText)
 
         if (event.user_left or event.user_kicked) and leftEnabled:
-            if "{firstname}" in leftText:
-                welcomeText = leftText.replace("{firstname}",str(userEntity.first_name))
-            if "{username}" in leftText:
-                welcomeText = leftText.replace("{username}",str(userEntity.username))
+            if "first_name" in leftText:
+                welcomeText = leftText.replace("first_name",str(userEntity.first_name))
+            if "user_name" in leftText:
+                welcomeText = leftText.replace("user_name",str(userEntity.username))
             await event.reply(leftText)
     except Exception as e:
         logging.exception("message")
@@ -1246,7 +1246,7 @@ async def updateLeftSettings(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
-@client.on(events.NewMessage(pattern=r'^\.welcometext [a-zA-Z]$'))
+@client.on(events.NewMessage(pattern=r'^\.welcometext \w+$'))
 async def updateWelcomeText(event):
     try:
         con = await getDbCon()
@@ -1269,7 +1269,7 @@ async def updateWelcomeText(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
-@client.on(events.NewMessage(pattern=r'^\.lefttext [a-zA-Z]$'))
+@client.on(events.NewMessage(pattern=r'^\.lefttext \w+$'))
 async def updateLeftText(event):
     try:
         con = await getDbCon()
@@ -1292,7 +1292,7 @@ async def updateLeftText(event):
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 
-@client.on(events.NewMessage(pattern=r'^\.profaneadd [a-zA-Z]$'))
+@client.on(events.NewMessage(pattern=r'^\.profaneadd \w+$'))
 async def addProfaneWord(event):
     try:
         con = await getDbCon()
@@ -1425,11 +1425,10 @@ async def getme(event):
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         reps = await getUserStats(channelId,fromUserId)
-        if reps is not None:
-            s=""
-            s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
-            if s != "" or s is not None:
-                await event.reply(s)
+        s=""
+        s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
+        if s != "" or s is not None:
+            await event.reply(s)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -1449,11 +1448,10 @@ async def getyou(event):
             toUserName = toUserEntity.username
             toUserFirstName = toUserEntity.first_name
             reps = await getUserStats(channelId,toUserId)
-            if reps is not None:
-                s=""
-                s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
-                if s != "" or s is not None:
-                    await event.reply(s)
+            s=""
+            s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
+            if s != "" or s is not None:
+                await event.reply(s)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
