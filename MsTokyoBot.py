@@ -59,6 +59,7 @@ def createQueries():
         queries.append(""" -- FUNCTION: DecreaseReputationCount(text) -- DROP FUNCTION "DecreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "DecreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") - 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "DecreaseReputationCount"(text) OWNER TO postgres; """)
         queries.append(""" -- FUNCTION: IncreaseReputationCount(text) -- DROP FUNCTION "IncreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "IncreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseReputationCount"(text) OWNER TO postgres; """)
         queries.append(""" -- FUNCTION: IncreaseMessageCount(text) -- DROP FUNCTION "IncreaseMessageCount"(text); CREATE OR REPLACE FUNCTION "IncreaseMessageCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalMessages" = (SELECT "TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseMessageCount"(text) OWNER TO postgres; """)
+        queries.append(""" -- FUNCTION: .InsertUser(text, text, integer, integer, text, text) -- DROP FUNCTION ."InsertUser"(text, text, integer, integer, text, text); CREATE OR REPLACE FUNCTION ."InsertUser"("ChannelIDVal" text,"UserIDVal" text,"TotalMessagesVal" integer,"TotalReputationVal" integer,"FirstNameVal" text,"ChannelIDUserIDVal" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName","ChannelID_UserID") VALUES ("ChannelIDVal","UserIDVal","TotalMessagesVal","TotalReputationVal","FirstNameVal","ChannelIDUserIDVal") $BODY$; ALTER FUNCTION ."InsertUser"(text, text, integer, integer, text, text) OWNER TO postgres; """)
         con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
         cur = con.cursor()
         cur.execute(tables)
@@ -253,10 +254,9 @@ async def AddUser(channelid,userid,firstname):
             con = await getDbCon()
         uid = await getUser(channelid,userid)
         if uid is None:
-            insert = 'INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName","ChannelID_UserID") VALUES (%s,%s,%s,%s,%s,%s)'
-            insertparam = (str(channelid),str(userid),0,0,firstname,str(channelid) + "_" + str(userid))
             cur = con.cursor()
-            cur.execute(insert,insertparam)
+            insertparam = (str(channelid),str(userid),0,0,firstname,str(channelid) + "_" + str(userid))
+            cur.callproc('"InsertUser"',[insertparam])
             con.commit()
             delete = 'DELETE FROM "UserDetails" WHERE "UserID" like \'Peer%\''
             cur = con.cursor()
