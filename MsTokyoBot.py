@@ -84,7 +84,7 @@ bot_token = '1318065263:AAF_brgyVqsq5GKVYczM6WaMrENdG8dJNLs'
 cmds = ".startbot : Start the bot \n" 
 cmds = "++ : Increase reputation \n"
 cmds += "-- : Reduce reputation \n"
-cmds += ".toprep : Get user reputation \n"
+cmds += ".toprep : Get top reputation \n"
 cmds += ".translate : Get translation \n"
 cmds += ".langcodes : Get language codes \n"
 cmds += ".m : Mute user \n"
@@ -92,7 +92,7 @@ cmds += ".um : Unmute user \n"
 cmds += ".b : Ban user \n"
 cmds += ".news : Get news \n"
 cmds += ".what : Get meaning \n"
-cmds += ".stat : Get user stats \n"
+cmds += ".topmsg : Get top messages \n"
 cmds += ".joke : Get a joke \n"
 cmds += ".yomama : Get yomama joke \n"
 cmds += ".loc : Get location estimation \n"
@@ -339,6 +339,20 @@ async def getTopRep(channelid):
         reps = cur.fetchall()
         cur.close()
         return reps
+
+async def getTopMsg(channelid):
+    if channelid is not None:
+        con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
+        select = 'SELECT "TotalMessages","FirstName" FROM "UserDetails" WHERE "ChannelID" = %s order by "TotalMessages" DESC LIMIT 20'
+        selectparam = (str(channelid),)
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        reps = cur.fetchall()
+        cur.close()
+        return reps
+
 
 async def getNews(term):
     try:
@@ -1381,7 +1395,66 @@ async def topRep(event):
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.topmsg$'))
+async def topMsg(event):
+    try:
+        con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        reps = await getTopMsg(channelId)
+        s=""
+        for rep in reps:
+            s += rep[1] + "(" + str(rep[0]) + ")" + "\n"
+        if s != "" or s is not None:
+            await event.reply(s)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
+@client.on(events.NewMessage(pattern=r'^\.mystat$'))
+async def getme(event):
+    try:
+        con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        reps = await getUserStats(channelId,fromUserId)
+        s=""
+        s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
+        if s != "" or s is not None:
+            await event.reply(s)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.yourstat$'))
+async def getyou(event):
+    try:
+        con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
+        channelId = event.message.to_id.channel_id
+        replytomsgid = event.message.reply_to_msg_id
+        if replytomsgid is not None:
+            msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+            toUserEntity = await client.get_entity(msgSearch.from_id)
+            toUserId = toUserEntity.id
+            toUserName = toUserEntity.username
+            toUserFirstName = toUserEntity.first_name
+            reps = await getUserStats(channelId,toUserId)
+            s=""
+            s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
+            if s != "" or s is not None:
+                await event.reply(s)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.clean$'))
 async def clean(event):
