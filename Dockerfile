@@ -15,7 +15,7 @@ COPY MsTokyoBot.py .
 COPY aiml .
 
 #install dependencies
-RUN pip install -r --no-cache-dir requirements.txt
+RUN pip install -r requirements.txt
 
 # copy code itself from context to image
 COPY . .
