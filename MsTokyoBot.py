@@ -1,11 +1,12 @@
+import telethon
 from telethon import TelegramClient, events, sync
-from telethon import functions, types
+from telethon import functions, types, custom
 from telethon.tl.types import *
 from telethon.tl.functions.messages import *
 from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin
-from telethon.tl.functions.channels import DeleteMessagesRequest,EditBannedRequest,GetParticipantRequest
+from telethon.tl.functions.channels import EditBannedRequest,GetParticipantRequest
 from telethon.tl.functions.messages import GetHistoryRequest,GetMessagesRequest,SendMediaRequest,SearchRequest
-from telethon import errors
+from telethon import errors,helpers, utils, hints
 from googletrans import Translator
 from bs4 import BeautifulSoup
 import html
@@ -38,9 +39,34 @@ import io
 import base64
 import logging
 #import aiml
+import pickle
+import pandas as pd
+import nltk
+#nltk.download('popular', quiet=True)
+from nltk.corpus import *
+import numpy as np
+import random
+import string # to process standard python strings
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from nltk.corpus import wordnet as wn
+from nltk.stem.wordnet import WordNetLemmatizer
+#import sklearn.external.joblib as extjoblib
+import joblib
+import re, string, unicodedata
+from collections import defaultdict
+from sklearn.metrics.pairwise import cosine_similarity,linear_kernel
+
+from chatterbot import ChatBot
+from chatterbot.trainers import ChatterBotCorpusTrainer
+bot = ChatBot('MsTokyo')
+trainer = ChatterBotCorpusTrainer(bot)
+trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
 
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
+eventDict = {}
+eventDict[0] = [0]
 s = sched.scheduler(time.time, time.sleep)
 
 async def getDbCon():
@@ -85,6 +111,8 @@ cmds = ".startbot : Start the bot \n"
 cmds = "++ : Increase reputation \n"
 cmds += "-- : Reduce reputation \n"
 cmds += ".toprep : Get top reputation \n"
+cmds += ".mrep : Get your reputation \n"
+cmds += ".yrep : Get others reputation \n"
 cmds += ".translate : Get translation \n"
 cmds += ".langcodes : Get language codes \n"
 cmds += ".m : Mute user \n"
@@ -92,7 +120,6 @@ cmds += ".um : Unmute user \n"
 cmds += ".b : Ban user \n"
 cmds += ".news : Get news \n"
 cmds += ".what : Get meaning \n"
-cmds += ".topmsg : Get top messages \n"
 cmds += ".joke : Get a joke \n"
 cmds += ".yomama : Get yomama joke \n"
 cmds += ".loc : Get location estimation \n"
@@ -263,27 +290,6 @@ async def AddUser(channelid,userid,firstname):
             con.commit()
             cur.close()
 
-async def updateMessageCount(channelid,userid,count):
-    #if con is None or con.closed == 0:
-    #    con = await getDbCon()
-    if channelid is not None and userid is not None:
-        con = await getDbCon()
-        cursor = con.cursor()
-        while con.closed == 1:
-            con = await getDbCon()
-        userEntity = await client.get_entity(userid)
-        firstname = userEntity.first_name
-        await AddUser(channelid,userid,firstname)
-        cursor.callproc('"IncreaseMessageCount"', [str(channelid) + "_" + str(userid), ])
-        con.commit()
-        cursor.close()
-
-        #update = 'UPDATE "UserDetails" set "TotalMessages" = %s WHERE "ChannelID_UserID" = %s'
-        #updateparam = (count,str(channelid) + "_" + str(userid),)
-        #cur = con.cursor()
-        #cur.execute(update,updateparam)
-        #con.commit()
-
 async def getUserStats(channelid,userid):
     #if con is None or con.closed == 0:
     #    con = await getDbCon()
@@ -291,7 +297,7 @@ async def getUserStats(channelid,userid):
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        select = 'SELECT "TotalMessages","TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = %s'
+        select = 'SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = %s'
         selectparam = (str(channelid) + "_" + str(userid),)
         cur = con.cursor()
         cur.execute(select,selectparam)
@@ -352,7 +358,6 @@ async def getTopMsg(channelid):
         reps = cur.fetchall()
         cur.close()
         return reps
-
 
 async def getNews(term):
     try:
@@ -417,43 +422,6 @@ async def eventData(event):
         toUserLastName = ''
         eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName,fromUserFirstName,fromUserLastName,toUserFirstName,toUserLastName,toUserId]
         return eventDataList
-        
-async def saveMessageIDs(messageid,channelid):
-    if messageid is not None:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-            insert = 'INSERT INTO "Messages" ("MessageID","ChannelID") VALUES (%s,%s)'
-            insertparam = (str(messageid),str(channelid),)
-            cur = con.cursor()
-            cur.execute(insert,insertparam)
-            con.commit()
-            cur.close()
-
-async def deleteMessagesFromDB(channelid):
-    if channelid is not None:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-            delete = 'DELETE FROM "Messages" WHERE "ChannelID" = %s'
-            deleteparam = (str(channelid),)
-            cur = con.cursor()
-            cur.execute(delete,deleteparam)
-            con.commit()
-            cur.close()
-
-async def getMessageIDs(channelid):
-    if channelid is not None:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-        select = 'SELECT "MessageID","ChannelID" FROM "Messages" WHERE "ChannelID" = %s'
-        selectparam = (str(channelid),)
-        cur = con.cursor()
-        cur.execute(select,selectparam)
-        reps = cur.fetchall()
-        cur.close()
-        return reps
 
 @client.on(events.NewMessage)
 async def my_event_handler(event):
@@ -461,10 +429,14 @@ async def my_event_handler(event):
         myID = 1318065263
         channelId = event.message.to_id.channel_id
         msgid = event.message.id
+        if channelId in eventDict:
+            eventDict[channelId].append(msgid)
+        else:
+            eventDict[channelId] = [msgid]
+            eventDict.pop(0)
         con = await getDbCon()
         while con.closed == 1:
             con = await getDbCon()
-        await saveMessageIDs(msgid,channelId)
         replytomsgid = event.message.reply_to_msg_id
         toUserId = None
         if replytomsgid is not None:
@@ -485,12 +457,11 @@ async def my_event_handler(event):
         fromUserId = event.from_id
         cur = con.cursor()
         #cur.callproc('"IncreaseMessageCount"', [str(channelId) + "_" + str(toUserId), ])
-        count = await getUserStats(channelId,fromUserId)
+        #count = await getUserStats(channelId,fromUserId)
         #if count is None:
         #    count = 1
         #else:
         #    count = count[0] + 1
-        await updateMessageCount(channelId,fromUserId,count)
 
         if len(settings) == 0:
             await loadSettings()
@@ -566,10 +537,13 @@ async def my_event_handler(event):
                     print(e)
                     await event.reply("Oh snap! Try again later.")
 
-        #if myID == toUserId:
-        #    bot_response = kernel.respond(event.raw_text.lower())
-        #    await event.reply(bot_response)
-    
+        if myID == toUserId and event.raw_text.lower() not in cmds:
+            responsedata = bot.get_response(event.raw_text.lower())
+            if responsedata is None:
+                await event.reply('I dont know what to reply!')
+            else:
+                await event.reply(responsedata.text)
+
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -785,7 +759,7 @@ async def getNewsData(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-@client.on(events.NewMessage(pattern=r'^\.what$'))
+@client.on(events.NewMessage(pattern=r'^\.what [a-zA-Z]+$'))
 async def getMeaning(event):
     try:
         con = await getDbCon()
@@ -939,12 +913,12 @@ async def getUserStat(event):
         channelId = event.message.to_id.channel_id
         cur = con.cursor()
         selectparam = (str(channelId) + "_" + str(fromUserId))
-        select = """ SELECT "TotalReputation","TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = '{}' """.format(selectparam)
+        select = """ SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = '{}' """.format(selectparam)
         cur.execute(select)
         data = cur.fetchall()
         if data is not None:
             for row in data:
-                s = "Total Reputation : "+str(int(row[0]))+" \nTotal Messages : " + str(row[1])
+                s = "Total Reputation : "+str(int(row[0]))
                 await event.reply(s)
         cur.close()
     except Exception as e:
@@ -988,26 +962,6 @@ async def getYomama(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
-@client.on(events.NewMessage(pattern=r'^\.loc$'))
-async def getLocation(event):
-    try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
-        fromUserId = event.from_id
-        channelId = event.message.to_id.channel_id
-        URL = "https://freegeoip.app/json/";
-        data = requests.get(url = URL)
-        loc = data.json()
-        locData = loc['country_name'] + "-" + loc['region_name'] + "-" + loc['city']
-        await event.reply(locData)
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        
-
 @client.on(events.NewMessage(pattern=r'^\.quote$'))
 async def getQuote(event):
     try:
@@ -1402,6 +1356,7 @@ async def getTrv(event):
         correct_answer = results[0]['correct_answer']
         incorrect_answer = results[0]['incorrect_answers']
         incorrect_answer.append(correct_answer)
+        random.shuffle(incorrect_answer)
         correct_answer_id = incorrect_answer.index(correct_answer)
         await client.send_message(channelId,file=InputMediaPoll(
             poll=Poll(
@@ -1415,7 +1370,6 @@ async def getTrv(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.toprep$'))
 async def topRep(event):
     try:
@@ -1434,27 +1388,8 @@ async def topRep(event):
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-
-@client.on(events.NewMessage(pattern=r'^\.topmsg$'))
-async def topMsg(event):
-    try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
-        fromUserId = event.from_id
-        channelId = event.message.to_id.channel_id
-        reps = await getTopMsg(channelId)
-        s=""
-        for rep in reps:
-            s += rep[1] + "(" + str(rep[0]) + ")" + "\n"
-        if s != "" or s is not None:
-            await event.reply(s)
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-@client.on(events.NewMessage(pattern=r'^\.mystat$'))
+@client.on(events.NewMessage(pattern=r'^\.mrep$'))
 async def getme(event):
     try:
         con = await getDbCon()
@@ -1464,15 +1399,16 @@ async def getme(event):
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         reps = await getUserStats(channelId,fromUserId)
-        s=""
-        s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
+        s = "TotalReputation : "
+        for t in reps:
+            s += str(t)
         if s != "" or s is not None:
             await event.reply(s)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-@client.on(events.NewMessage(pattern=r'^\.yourstat$'))
+@client.on(events.NewMessage(pattern=r'^\.yrep$'))
 async def getyou(event):
     try:
         con = await getDbCon()
@@ -1487,8 +1423,9 @@ async def getyou(event):
             toUserName = toUserEntity.username
             toUserFirstName = toUserEntity.first_name
             reps = await getUserStats(channelId,toUserId)
-            s=""
-            s += "TotalMessages : " + str(reps[0]) + "\nTotalReputation : " + str(reps[1])
+            s = "TotalReputation : "
+            for t in reps:
+                s += str(t)
             if s != "" or s is not None:
                 await event.reply(s)
     except Exception as e:
@@ -1509,19 +1446,33 @@ async def clean(event):
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if isadmin or iscreator:
-            messages = await getMessageIDs(channelId)
-            msgarr = []
-            for message in messages:
-                msgid = message[0]
-                await client(functions.channels.DeleteMessagesRequest(
-                            channel=channelEntity,
-                            id=[int(msgid)]
-                        ))
-            await deleteMessagesFromDB(channelId)
-            await event.reply('Cleaned!')
+            filter = InputMessagesFilterEmpty()
+            result = client(SearchRequest(
+                peer=channelEntity,  # On which chat/conversation
+                q='',  # What to search for
+                filter=filter,  # Filter to use (maybe filter for media)
+                min_date=None,  # Minimum date
+                max_date=None,  # Maximum date
+                offset_id=0,  # ID of the message to use as offset
+                add_offset=0,  # Additional offset
+                limit=5,  # How many results
+                max_id=0,  # Maximum message ID
+                min_id=0,  # Minimum message ID
+                from_id=None,  # Who must have sent the message (peer)
+                hash=0  # Special number to return nothing on no-change
+            ))
+
+            async for message in client.iter_messages(channelEntity,filter=result):
+                print(message.message)
+            events = eventDict[channelId]
+            affected = await client.delete_messages(channelId, events)
+            if len(affected) > 0:
+                await event.reply("Cleaned!")
+            else:
+                await event.reply("Something went wrong!")
+
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 client.run_until_disconnected()
