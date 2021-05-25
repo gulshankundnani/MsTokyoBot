@@ -142,5 +142,5 @@ pandas
 nltk
 numpy
 sklearn
-chatterbot
+chatterbot==1.0.4
 chatterbot_corpus
