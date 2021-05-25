@@ -4,6 +4,7 @@ FROM python:3.8.2
 RUN git clone https://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:x-oauth-basic@github.com/gulshankundnani/MsTokyoBot.git
 # run this before copying requirements for cache efficiency
 RUN pip install --upgrade pip
+RUN pip install --upgrade setuptools wheel
 #set work directory early so remaining paths can be relative
 WORKDIR /app
 
@@ -14,7 +15,7 @@ COPY MsTokyoBot.py .
 COPY aiml .
 
 #install dependencies
-RUN pip install -r requirements.txt
+RUN pip install -r --no-cache-dir requirements.txt
 
 # copy code itself from context to image
 COPY . .
