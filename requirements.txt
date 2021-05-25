@@ -143,3 +143,4 @@ nltk
 numpy
 sklearn
 chatterbot
+chatterbot_corpus
