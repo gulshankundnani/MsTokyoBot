@@ -56,6 +56,12 @@ import re, string, unicodedata
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity,linear_kernel
 
+from chatterbot import ChatBot
+from chatterbot.trainers import ChatterBotCorpusTrainer
+bot = ChatBot('MsTokyo')
+trainer = ChatterBotCorpusTrainer(bot)
+trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
+
 from nudenet import NudeDetector
 detector = NudeDetector()
 from nudenet import NudeClassifierLite
@@ -64,11 +70,6 @@ classifier_lite = NudeClassifierLite()
 import pafy
 import youtube_dl
 
-from chatterbot import ChatBot
-from chatterbot.trainers import ChatterBotCorpusTrainer
-bot = ChatBot('MsTokyo')
-trainer = ChatterBotCorpusTrainer(bot)
-trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
 
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
