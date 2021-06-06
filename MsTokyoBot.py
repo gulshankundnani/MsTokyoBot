@@ -43,7 +43,7 @@ import logging
 import pickle
 import pandas as pd
 import nltk
-#nltk.download('popular', quiet=True)
+nltk.download('popular', quiet=True)
 from nltk.corpus import *
 import numpy as np
 import random
@@ -62,7 +62,7 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-#trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
+trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
 print("training done")
 print("importing nudenet and pafy")
 from nudenet import NudeDetector
