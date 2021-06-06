@@ -3,10 +3,11 @@ from telethon import TelegramClient, events, sync
 from telethon import functions, types, custom
 from telethon.tl.types import *
 from telethon.tl.functions.messages import *
-from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin
+from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin, ChannelParticipantsSearch
 from telethon.tl.functions.channels import EditBannedRequest,GetParticipantRequest
 from telethon.tl.functions.messages import GetHistoryRequest,GetMessagesRequest,SendMediaRequest,SearchRequest
 from telethon import errors,helpers, utils, hints
+
 from googletrans import Translator
 from bs4 import BeautifulSoup
 import html
@@ -38,11 +39,10 @@ from io import BytesIO
 import io
 import base64
 import logging
-#import aiml
 import pickle
 import pandas as pd
 import nltk
-#nltk.download('popular', quiet=True)
+nltk.download('popular', quiet=True)
 from nltk.corpus import *
 import numpy as np
 import random
@@ -51,17 +51,24 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import wordnet as wn
 from nltk.stem.wordnet import WordNetLemmatizer
-#import sklearn.external.joblib as extjoblib
 import joblib
 import re, string, unicodedata
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity,linear_kernel
 
+from nudenet import NudeDetector
+detector = NudeDetector()
+from nudenet import NudeClassifierLite
+# initialize classifier (downloads the checkpoint file automatically the first time)
+classifier_lite = NudeClassifierLite()
+import pafy
+import youtube_dl
+
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-trainer.train("chatterbot.corpus.english","chatterbot.corpus.hindi" )
+trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
 
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
@@ -79,13 +86,13 @@ def createQueries():
         tables = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"
         queries = []
         queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelDetails"("ChannelId" text,"ChannelTitle" text,"ChannelUsername" text,"AccessHash" text,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelDetails" OWNER to postgres; """)
-        queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,PRIMARY KEY ("SettingsID")) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
-        queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
+        queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,"AllowBots" boolean,"ImageFilter" boolean,"Rules" text,PRIMARY KEY ("SettingsID")) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
+        queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text,"DOJ" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
         queries.append(""" CREATE TABLE IF NOT EXISTS "Messages"("ChannelID" text,"MessageID" text) WITH (OIDS = FALSE); ALTER TABLE "Messages" OWNER to postgres; """)
         queries.append(""" -- FUNCTION: DecreaseReputationCount(text) -- DROP FUNCTION "DecreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "DecreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") - 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "DecreaseReputationCount"(text) OWNER TO postgres; """)
         queries.append(""" -- FUNCTION: IncreaseReputationCount(text) -- DROP FUNCTION "IncreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "IncreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseReputationCount"(text) OWNER TO postgres; """)
         queries.append(""" -- FUNCTION: IncreaseMessageCount(text) -- DROP FUNCTION "IncreaseMessageCount"(text); CREATE OR REPLACE FUNCTION "IncreaseMessageCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalMessages" = (SELECT "TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseMessageCount"(text) OWNER TO postgres; """)
-        queries.append(""" -- FUNCTION: .InsertUser(text, text, integer, integer, text, text) -- DROP FUNCTION ."InsertUser"(text, text, integer, integer, text, text); CREATE OR REPLACE FUNCTION ."InsertUser"("ChannelIDVal" text,"UserIDVal" text,"TotalMessagesVal" integer,"TotalReputationVal" integer,"FirstNameVal" text,"ChannelIDUserIDVal" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName","ChannelID_UserID") VALUES ("ChannelIDVal","UserIDVal","TotalMessagesVal","TotalReputationVal","FirstNameVal","ChannelIDUserIDVal") $BODY$; ALTER FUNCTION ."InsertUser"(text, text, integer, integer, text, text) OWNER TO postgres; """)
+        queries.append(""" -- FUNCTION: public.InsertUser(text, text, integer, integer, text, text) -- DROP FUNCTION public."InsertUser"(text, text, integer, integer, text, text); CREATE OR REPLACE FUNCTION public."InsertUser"("ChannelIDVal" text, "UserIDVal" text, "TotalMessagesVal" integer, "TotalReputationVal" integer, "FirstNameVal" text, "ChannelIDUserIDVal" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName","ChannelID_UserID","DOJ") VALUES ("ChannelIDVal","UserIDVal","TotalMessagesVal","TotalReputationVal","FirstNameVal","ChannelIDUserIDVal",Now()) $BODY$; ALTER FUNCTION public."InsertUser"(text, text, integer, integer, text, text) OWNER TO postgres; """)
         con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
         cur = con.cursor()
         cur.execute(tables)
@@ -139,21 +146,17 @@ cmds += ".welcome : use true/false to enable or disable welcome \n"
 cmds += ".welcometext : set welcome text eg: welcome first_name/user_name \n"
 cmds += ".left : use true/false to enable or disable welcome \n"
 cmds += ".lefttext : set left text eg: first_name/user_name left \n"
+cmds += ".allowbots : use true/false to enable or disable bots \n"
+cmds += ".imagefilter : use true/false to enable or disable image filter \n"
 cmds += ".art : Get art pics \n"
+cmds += ".music : Get music \n"
+cmds += ".setrules : Set rules \n"
+cmds += ".rules : Get rules \n"
 #cmds += ".clean : Clean the group. Make sure you have disabled messages before using the command. \n"
 cmds += ".cmd : Get list of commands \n"
 
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
-
-#kernel = aiml.Kernel()
-
-#if os.path.isfile("bot_brain.brn"):
-#	kernel.bootstrap(brainFile = "bot_brain.brn")
-#else:
-#	kernel.bootstrap(learnFiles = os.path.abspath("aiml/std-startup.xml"), commands = "load aiml b")
-#	kernel.saveBrain("bot_brain.brn")
-
 settings = []
 
 isActive = True
@@ -168,8 +171,6 @@ def image_to_byte_array(image:Image):
   return imgByteArr
 
 async def AddClient(ChannelEntity):
-    #if con is None or con.closed == 0:
-    #    con = await getDbCon()
     if ChannelEntity is not None:
         con = await getDbCon()
         while con.closed == 1:
@@ -200,8 +201,6 @@ async def AddClient(ChannelEntity):
         cur.close()
 
 async def UpdateClientSettings(channelid,key,value):
-    #if con is None or con.closed == 0:
-    #    con = await getDbCon()
     if channelid is not None and key is not None and value is not None:
         con = await getDbCon()
         while con.closed == 1:
@@ -239,6 +238,12 @@ async def UpdateClientSettings(channelid,key,value):
                 update = 'UPDATE "ChannelSettings" set "Left" = False WHERE "ChannelID" = %s'
             if key == 'LeftText' and value is not None:
                 update = 'UPDATE "ChannelSettings" set "LeftText" = \''+str(value)+'\' WHERE "ChannelID" = %s'
+            if key == 'AllowBots' and value == 'false':
+                update = 'UPDATE "ChannelSettings" set "AllowBots" = False WHERE "ChannelID" = %s'
+            if key == 'ImageFilter' and value is not None:
+                update = 'UPDATE "ChannelSettings" set "ImageFilter" = \''+str(value)+'\' WHERE "ChannelID" = %s'
+            if key == 'Rules' and value is not None:
+                update = 'UPDATE "ChannelSettings" set "Rules" = \''+str(value)+'\' WHERE "ChannelID" = %s'
             cur = con.cursor()
             updateparam = (str(channelid),)
             cur.execute(update,updateparam)
@@ -273,8 +278,6 @@ async def getUser(channelid,userid):
         return uid
 
 async def AddUser(channelid,userid,firstname):
-    #if con is None or con.closed == 0:
-    #    con = await getDbCon()
     if channelid is not None and userid is not None:
         con = await getDbCon()
         while con.closed == 1:
@@ -291,8 +294,6 @@ async def AddUser(channelid,userid,firstname):
             cur.close()
 
 async def getUserStats(channelid,userid):
-    #if con is None or con.closed == 0:
-    #    con = await getDbCon()
     if channelid is not None and userid is not None:
         con = await getDbCon()
         while con.closed == 1:
@@ -306,8 +307,6 @@ async def getUserStats(channelid,userid):
         return stats
 
 async def updateRep(channelid,userid,rep):
-    #if con is None or con.closed == 0:
-    #    con = await getDbCon()
     if channelid is not None and userid is not None:
         con = await getDbCon()
         while con.closed == 1:
@@ -328,7 +327,6 @@ async def getTriviaCategory():
 async def deleteCommandMessage(channelid,msgid):
     try:
         await client.delete_messages(channelid,msgid)
-        #client(DeleteMessagesRequest(channelid, msgid))
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
@@ -383,45 +381,45 @@ async def get_meaning(word):
     info = dictionary.meaning(str(word))
     return info
 
-async def eventData(event):
-    replytomsgid = event.message.reply_to_msg_id
-    if replytomsgid is not None:
-        try:
-            fromUserId = event.from_id
-            fromUserEntity = await client.get_entity(fromUserId)
-            fromUserName = fromUserEntity.username
-            fromUserFirstName = fromUserEntity.first_name
-            fromUserLastName = fromUserEntity.last_name
-            channelId = event.message.to_id.channel_id
-            channelEntity = await client.get_entity(channelId)
-            msgSearch = await client.get_messages(channelId, ids=replytomsgid)
-            toUserEntity = await client.get_entity(msgSearch.from_id)
-            toUserId = toUserEntity.id
-            toUserName = toUserEntity.username
-            toUserFirstName = toUserEntity.first_name
-            toUserLastName = toUserEntity.last_name
-            eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName,fromUserFirstName,fromUserLastName,toUserFirstName,toUserLastName,toUserId]
-            return eventDataList
-        except Exception as e:
-            logging.exception("message")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-    else:
-        print('private chat')
-        fromUserId = event.from_id
-        fromUserEntity = await client.get_entity(fromUserId)
-        fromUserName = fromUserEntity.username
-        fromUserFirstName = fromUserEntity.first_name
-        fromUserLastName = fromUserEntity.last_name
-        channelId = event.message.to_id.channel_id
-        channelEntity = await client.get_entity(channelId)
-        msgSearch = ''
-        toUserEntity = ''
-        toUserId = ''
-        toUserName = ''
-        toUserFirstName = ''
-        toUserLastName = ''
-        eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName,fromUserFirstName,fromUserLastName,toUserFirstName,toUserLastName,toUserId]
-        return eventDataList
+#async def eventData(event):
+#    replytomsgid = event.message.reply_to_msg_id
+#    if replytomsgid is not None:
+#        try:
+#            fromUserId = event.from_id
+#            fromUserEntity = await client.get_entity(fromUserId)
+#            fromUserName = fromUserEntity.username
+#            fromUserFirstName = fromUserEntity.first_name
+#            fromUserLastName = fromUserEntity.last_name
+#            channelId = event.message.to_id.channel_id
+#            channelEntity = await client.get_entity(channelId)
+#            msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+#            toUserEntity = await client.get_entity(msgSearch.from_id)
+#            toUserId = toUserEntity.id
+#            toUserName = toUserEntity.username
+#            toUserFirstName = toUserEntity.first_name
+#            toUserLastName = toUserEntity.last_name
+#            eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName,fromUserFirstName,fromUserLastName,toUserFirstName,toUserLastName,toUserId]
+#            return eventDataList
+#        except Exception as e:
+#            logging.exception("message")
+#            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+#    else:
+#        print('private chat')
+#        fromUserId = event.from_id
+#        fromUserEntity = await client.get_entity(fromUserId)
+#        fromUserName = fromUserEntity.username
+#        fromUserFirstName = fromUserEntity.first_name
+#        fromUserLastName = fromUserEntity.last_name
+#        channelId = event.message.to_id.channel_id
+#        channelEntity = await client.get_entity(channelId)
+#        msgSearch = ''
+#        toUserEntity = ''
+#        toUserId = ''
+#        toUserName = ''
+#        toUserFirstName = ''
+#        toUserLastName = ''
+#        eventDataList = [fromUserId,fromUserEntity,fromUserName,channelId,channelEntity,msgSearch,toUserEntity,toUserName,fromUserFirstName,fromUserLastName,toUserFirstName,toUserLastName,toUserId]
+#        return eventDataList
 
 @client.on(events.NewMessage)
 async def my_event_handler(event):
@@ -433,10 +431,8 @@ async def my_event_handler(event):
             eventDict[channelId].append(msgid)
         else:
             eventDict[channelId] = [msgid]
-            eventDict.pop(0)
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
+            if 0 in eventDict.keys():
+                eventDict.pop(0)
         replytomsgid = event.message.reply_to_msg_id
         toUserId = None
         if replytomsgid is not None:
@@ -444,7 +440,6 @@ async def my_event_handler(event):
             if msgSearch is not None:
                 toUserEntity = await client.get_entity(msgSearch.from_id)
                 toUserId = toUserEntity.id
-        con = await getDbCon()
         channelEntity = await client.get_entity(channelId)
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
@@ -454,15 +449,9 @@ async def my_event_handler(event):
         aichatEnabled = False
         welcomeEnabled = False
         leftEnabled = False
+        ImageFilter = False
+        AllowBots = False
         fromUserId = event.from_id
-        cur = con.cursor()
-        #cur.callproc('"IncreaseMessageCount"', [str(channelId) + "_" + str(toUserId), ])
-        #count = await getUserStats(channelId,fromUserId)
-        #if count is None:
-        #    count = 1
-        #else:
-        #    count = count[0] + 1
-
         if len(settings) == 0:
             await loadSettings()
         allsettings = json.loads(settings)
@@ -492,6 +481,14 @@ async def my_event_handler(event):
                     isActive = True
                 else:
                     isActive = False
+                if setting["ImageFilter"] == True:
+                    ImageFilter = True
+                else:
+                    ImageFilter = False
+                if setting["AllowBots"] == True:
+                    AllowBots = True
+                else:
+                    AllowBots = False
 
         if profanityEnabled:
                 if profanity.contains_profanity(event.raw_text.lower()):
@@ -501,6 +498,24 @@ async def my_event_handler(event):
                     ))
                     await client.send_message(channelId,message="Message was deleted because of profanity!")
             
+        if ImageFilter:
+            if event.photo:
+                id = event.message.to_id
+                chat_username = await client.get_entity(id)
+                usr = chat_username.id
+                image_base = event.message.media
+                media = await client.download_media(image_base,"./Media/" + str(event.message.id))
+                path = os.path.abspath(media)
+                classify = classifier_lite.classify(path)
+                print(classify)
+                for key in classify:
+                    print(classify[key]['unsafe'])
+                    if classify[key]['unsafe'] > 0.5:
+                        await client.delete_messages(event.chat_id, [event.id])
+                        os.remove(path)
+                    else:
+                        os.remove(path)
+                
         if event.raw_text.lower() == '.translate' or '.translate' in event.raw_text.lower():
                 try:
                     cmd = event.raw_text.lower()
@@ -522,21 +537,6 @@ async def my_event_handler(event):
                     logging.exception("message")
                     print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-        if event.raw_text.lower() == 'gif':
-            header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
-            #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
-            url = "https://gfycat.com/gifs/search/bye+bye"
-            response = requests.get(url,headers=header)
-            soup = BeautifulSoup(response.content,"html.parser")
-            soup1 = soup.find_all("img")
-            if len(soup1) > 0:
-                imgsrc = random.choice(soup1)
-                try:
-                    await client.send_file(channelId,imgsrc['src'],force_document=False)
-                except Exception as e:
-                    print(e)
-                    await event.reply("Oh snap! Try again later.")
-
         if myID == toUserId and event.raw_text.lower() not in cmds:
             responsedata = bot.get_response(event.raw_text.lower())
             if responsedata is None:
@@ -551,9 +551,6 @@ async def my_event_handler(event):
 @client.on(events.ChatAction)
 async def chat_action_handler(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
         channelId = event.chat.id
         welcomeEnabled = False
         leftEnabled = False
@@ -627,10 +624,6 @@ async def chat_action_handler(event):
 @client.on(events.NewMessage(pattern=r'^\.langcodes$'))
 async def langcodes(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         s = googletrans.LANGUAGES
@@ -646,9 +639,6 @@ async def increaseRep(event):
     replytomsgid = event.message.reply_to_msg_id
     if replytomsgid is not None:
         try:
-            con = await getDbCon()
-            while con.closed == 1:
-                con = await getDbCon()
             fromUserId = event.from_id
             fromUserEntity = await client.get_entity(fromUserId)
             fromUserName = fromUserEntity.username
@@ -678,12 +668,6 @@ async def increaseRep(event):
                     cur.callproc('"IncreaseReputationCount"', [str(channelId) + "_" + str(toUserId), ])
                     con.commit()
                     count = await getUserStats(channelId,fromUserId)
-                    print(count)
-                    #if count is None:
-                    #    countRep = 1
-                    #else:
-                    #    countRep = count[1] + 1
-                    #await updateRep(channelId,toUserId,countRep)
                     await event.reply(fromUserFirstName + ' increased reputation of ' + toUserFirstName)
         except Exception as e:
             logging.exception("message")
@@ -694,10 +678,6 @@ async def decreaseRep(event):
     replytomsgid = event.message.reply_to_msg_id
     if replytomsgid is not None:
         try:
-            con = await getDbCon()
-            while con.closed == 1:
-                con = await getDbCon()
-
             fromUserId = event.from_id
             fromUserEntity = await client.get_entity(fromUserId)
             fromUserName = fromUserEntity.username
@@ -727,12 +707,6 @@ async def decreaseRep(event):
                     cur.callproc('"DecreaseReputationCount"', [str(channelId) + "_" + str(toUserId), ])
                     con.commit()
                     count = await getUserStats(channelId,fromUserId)
-                    print(count)
-                    #if count is None:
-                    #    countRep = 0
-                    #else:
-                    #    countRep = count[1] - 1
-                    #await updateRep(channelId,toUserId,count)
                     await event.reply(fromUserFirstName + ' decreased reputation of ' + toUserFirstName)
         except Exception as e:
             logging.exception("message")
@@ -741,10 +715,6 @@ async def decreaseRep(event):
 @client.on(events.NewMessage(pattern=r'^\.news [a-zA-Z]'))
 async def getNewsData(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         command = event.raw_text.lower()
@@ -762,10 +732,6 @@ async def getNewsData(event):
 @client.on(events.NewMessage(pattern=r'^\.what [a-zA-Z]+$'))
 async def getMeaning(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         search = event.raw_text.lower().replace('.what ','')
@@ -786,10 +752,6 @@ async def getMeaning(event):
 @client.on(events.NewMessage(pattern=r'^\.cmd$'))
 async def getCommands(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         await event.reply(cmds)
@@ -800,10 +762,6 @@ async def getCommands(event):
 @client.on(events.NewMessage(pattern=r'^\.m$'))
 async def mute(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
         channelId = event.message.to_id.channel_id
@@ -826,10 +784,6 @@ async def mute(event):
 @client.on(events.NewMessage(pattern=r'^\.um$'))
 async def unmute(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
         channelId = event.message.to_id.channel_id
@@ -852,10 +806,6 @@ async def unmute(event):
 @client.on(events.NewMessage(pattern=r'^\.b$'))
 async def ban(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
         channelId = event.message.to_id.channel_id
@@ -878,10 +828,6 @@ async def ban(event):
 @client.on(events.NewMessage(pattern=r'^\.ub$'))
 async def unban(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         replytomsgid = event.message.reply_to_msg_id
         channelId = event.message.to_id.channel_id
@@ -901,37 +847,9 @@ async def unban(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-    
-@client.on(events.NewMessage(pattern=r'^\.stat$'))
-async def getUserStat(event):
-    try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
-        fromUserId = event.from_id
-        channelId = event.message.to_id.channel_id
-        cur = con.cursor()
-        selectparam = (str(channelId) + "_" + str(fromUserId))
-        select = """ SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = '{}' """.format(selectparam)
-        cur.execute(select)
-        data = cur.fetchall()
-        if data is not None:
-            for row in data:
-                s = "Total Reputation : "+str(int(row[0]))
-                await event.reply(s)
-        cur.close()
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        
 @client.on(events.NewMessage(pattern=r'^\.joke$'))
 async def getJoke(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         URL = "https://v2.jokeapi.dev/joke/Any";
@@ -944,14 +862,9 @@ async def getJoke(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.yomama$'))
 async def getYomama(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         URL = "https://api.yomomma.info/"
@@ -965,10 +878,6 @@ async def getYomama(event):
 @client.on(events.NewMessage(pattern=r'^\.quote$'))
 async def getQuote(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         URL = "https://api.forismatic.com/api/1.0/?method=getQuote&lang=en&format=jsonp&jsonp=?"
@@ -980,14 +889,9 @@ async def getQuote(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.bored$'))
 async def getActivity(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         URL = "https://www.boredapi.com/api/activity"
@@ -999,14 +903,9 @@ async def getActivity(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.insult$'))
 async def getInsulted(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         URL = "https://evilinsult.com/generate_insult.php?lang=en&type=json"
@@ -1018,14 +917,9 @@ async def getInsulted(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.advice$'))
 async def getAdvice(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         URL = "https://api.adviceslip.com/advice"
@@ -1037,14 +931,9 @@ async def getAdvice(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.dadjoke$'))
 async def getDadJoke(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         URL = "https://icanhazdadjoke.com/"
@@ -1056,14 +945,9 @@ async def getDadJoke(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.ping$'))
 async def getPing(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         m = await event.respond('!pong')
@@ -1073,14 +957,9 @@ async def getPing(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.startbot$'))
 async def startBot(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         await event.reply('Wait!')
@@ -1091,14 +970,71 @@ async def startBot(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
+@client.on(events.NewMessage(pattern=r'^\.imagefilter (?i)(true|false)$'))
+async def updateImageSettings(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if event.raw_text.lower() == '.imagefilter true' and (isadmin or iscreator):
+            try:
+                
+                await UpdateClientSettings(channelId,"ImageFilter","true")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                logging.exception("message")
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                
+
+        if event.raw_text.lower() == '.imagefilter false' and (isadmin or iscreator):
+            try:
+                
+                await UpdateClientSettings(channelId,"ImageFilter","false")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                logging.exception("message")
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.allowbots (?i)(true|false)$'))
+async def updateBotSettings(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if event.raw_text.lower() == '.allowbots true' and (isadmin or iscreator):
+            try:
+                
+                await UpdateClientSettings(channelId,"AllowBots","true")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                logging.exception("message")
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                
+
+        if event.raw_text.lower() == '.allowbots false' and (isadmin or iscreator):
+            try:
+                
+                await UpdateClientSettings(channelId,"AllowBots","false")
+                await event.reply('Settings Updated!')
+            except Exception as e:
+                logging.exception("message")
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+                
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.reputation (?i)(true|false)$'))
 async def updateReputationSettings(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
@@ -1127,17 +1063,9 @@ async def updateReputationSettings(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.profanity (?i)(true|false)$'))
 async def updateProfanitySettings(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-                try:
-                    con = await getDbCon()
-                except psycopg2.OperationalError:
-                    continue
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
@@ -1166,14 +1094,9 @@ async def updateProfanitySettings(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.welcome (?i)(true|false)$'))
 async def updateWelcomeSettings(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
@@ -1202,14 +1125,9 @@ async def updateWelcomeSettings(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.left (?i)(true|false)$'))
 async def updateLeftSettings(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
@@ -1238,14 +1156,9 @@ async def updateLeftSettings(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.welcometext (.*)?$'))
 async def updateWelcomeText(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
@@ -1261,14 +1174,9 @@ async def updateWelcomeText(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.lefttext (.*)?$'))
 async def updateLeftText(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
@@ -1284,14 +1192,9 @@ async def updateLeftText(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.profaneadd \w+$'))
 async def addProfaneWord(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
@@ -1305,14 +1208,9 @@ async def addProfaneWord(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.art$'))
 async def getArt(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         await event.reply("Wait ! Let me find art for you.")
@@ -1336,14 +1234,9 @@ async def getArt(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-
 @client.on(events.NewMessage(pattern=r'^\.trv$'))
 async def getTrv(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         URL = triviaUrl
@@ -1373,10 +1266,6 @@ async def getTrv(event):
 @client.on(events.NewMessage(pattern=r'^\.toprep$'))
 async def topRep(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         reps = await getTopRep(channelId)
@@ -1392,10 +1281,6 @@ async def topRep(event):
 @client.on(events.NewMessage(pattern=r'^\.mrep$'))
 async def getme(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         reps = await getUserStats(channelId,fromUserId)
@@ -1411,9 +1296,6 @@ async def getme(event):
 @client.on(events.NewMessage(pattern=r'^\.yrep$'))
 async def getyou(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
         channelId = event.message.to_id.channel_id
         replytomsgid = event.message.reply_to_msg_id
         if replytomsgid is not None:
@@ -1432,13 +1314,9 @@ async def getyou(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-@client.on(events.NewMessage(pattern=r'^\.clean$'))
+@client.on(events.NewMessage(pattern=r'^\.clean$',func=lambda e: e.is_reply))
 async def clean(event):
     try:
-        con = await getDbCon()
-        while con.closed == 1:
-            con = await getDbCon()
-
         fromUserId = event.from_id
         channelId = event.message.to_id.channel_id
         channelEntity = await client.get_entity(channelId)
@@ -1446,33 +1324,349 @@ async def clean(event):
         isadmin = (type(participant.participant) == ChannelParticipantAdmin)
         iscreator = (type(participant.participant) == ChannelParticipantCreator)
         if isadmin or iscreator:
-            filter = InputMessagesFilterEmpty()
-            result = client(SearchRequest(
-                peer=channelEntity,  # On which chat/conversation
-                q='',  # What to search for
-                filter=filter,  # Filter to use (maybe filter for media)
-                min_date=None,  # Minimum date
-                max_date=None,  # Maximum date
-                offset_id=0,  # ID of the message to use as offset
-                add_offset=0,  # Additional offset
-                limit=5,  # How many results
-                max_id=0,  # Maximum message ID
-                min_id=0,  # Minimum message ID
-                from_id=None,  # Who must have sent the message (peer)
-                hash=0  # Special number to return nothing on no-change
-            ))
+            replytomsgid = event.message.reply_to_msg_id
+            temp = [event.id]
+            min_id = replytomsgid - 1
+            max_id = event.message.id
+            cnt = min_id
+            while cnt < max_id:
+                cnt = cnt + 1
+                temp.append(cnt)
+            await client.delete_messages(event.input_chat,temp,revoke=True)
+            await client.send_message(channelId,"cleaned")
 
-            async for message in client.iter_messages(channelEntity,filter=result):
-                print(message.message)
-            events = eventDict[channelId]
-            affected = await client.delete_messages(channelId, events)
-            if len(affected) > 0:
-                await event.reply("Cleaned!")
-            else:
-                await event.reply("Something went wrong!")
+    except Exception as e:
+        await event.reply("Can't delete older messages.")
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
+@client.on(events.NewMessage(pattern=r'^\.lmsg$'))
+async def lockmsg(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            await client.send_message(channelId,"Please wait! We will allow messages soon.")
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_messages=False)
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-        
+
+@client.on(events.NewMessage(pattern=r'^\.ulmsg$'))
+async def unlockmsg(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_messages=True)
+            await client.send_message(channelId,"Now you can talk!")
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.lmed$'))
+async def lockmedia(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            await client.send_message(channelId,"Please wait! We will allow media soon.")
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_media=False)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.ulmed$'))
+async def unlockmedia(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_media=True)
+            await client.send_message(channelId,"Now you can post media!")
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.lstk$'))
+async def lockstickers(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            await client.send_message(channelId,"Please wait! We will allow stickers soon.")
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_stickers=False)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.ulstk$'))
+async def unlockstickers(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_stickers=True)
+            await client.send_message(channelId,"Now you can send stickers!")
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.lgif$'))
+async def lockgif(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            await client.send_message(channelId,"Please wait! We will allow gifs soon.")
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_gifs=False)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.ulgif$'))
+async def unlockgif(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_gifs=True)
+            await client.send_message(channelId,"Now you can send gifs!")
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.lgame$'))    
+async def lockgame(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            await client.send_message(channelId,"Please wait! We will allow games soon.")
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_games=False)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.ulgame$'))
+async def unlockgame(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_games=True)
+            await client.send_message(channelId,"Now you can send games!")
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.lpoll$'))
+async def lockpoll(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            await client.send_message(channelId,"Please wait! We will allow polls soon.")
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_polls=False)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.ulpoll$'))
+async def unlockpoll(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            participants = await client.get_participants(channelId)
+            for par in participants:
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=par.id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin == False and iscreator == False:
+                    await client.edit_permissions(channelId,par,send_polls=True)
+            await client.send_message(channelId,"Now you can talk!")
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.music (?:[A-Za-z]+)(?:[A-Za-z0-9 _]*)$'))
+async def sendmusic(event):
+    try:
+        await event.reply("Have Patience! Searching for requested song.")
+        cmd = event.raw_text.lower()
+        cmd = cmd.replace(".music ","")
+        cmd = cmd.replace(" ","%20")
+        channelId = event.message.to_id.channel_id
+        html = urllib2.urlopen("https://www.youtube.com/results?search_query=" + str(cmd) + "")
+        video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
+        url = "https://www.youtube.com/watch?v=" + video_ids[0]
+        video = pafy.new(url)
+        bestaudio = video.getbestaudio(preftype="m4a")
+        fname = bestaudio.filename
+        duration = video.duration
+        date_time = datetime.strptime(duration, "%H:%M:%S")
+        a_timedelta = date_time - datetime(1900, 1, 1)
+        seconds = a_timedelta.total_seconds()
+        bestaudio.download()
+        path = os.path.abspath(fname)
+        await client.send_file(channelId, path, attributes=[DocumentAttributeFilename(file_name=fname), DocumentAttributeAudio(duration=int(seconds), voice=True,title=fname)])
+        os.remove(path)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.setrules (.*?)$'))
+async def setRules(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            text = event.raw_text.lower().replace(".setrules","",1)
+            if text is not None:
+                await UpdateClientSettings(channelId,"Rules",text)
+                await event.reply('Settings Updated!')
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.rules$'))
+async def getRules(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        rules = ""
+        if len(settings) == 0:
+            await loadSettings()
+        allsettings = json.loads(settings)
+        for setting in allsettings:
+            if setting["ChannelID"] == str(channelId):
+                if setting["Rules"] is not None:
+                    rules = setting["Rules"]
+                else:
+                    rules = "No Rules!"
+        await event.reply(rules)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
 client.run_until_disconnected()
+
+
