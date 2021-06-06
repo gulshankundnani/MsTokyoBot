@@ -42,7 +42,7 @@ import logging
 import pickle
 import pandas as pd
 import nltk
-nltk.download('popular', quiet=True)
+#nltk.download('popular', quiet=True)
 from nltk.corpus import *
 import numpy as np
 import random
