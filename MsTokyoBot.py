@@ -548,16 +548,16 @@ async def my_event_handler(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-@client.on(events.ChatAction)
 async def chat_action_handler(event):
     try:
         channelId = event.chat.id
         welcomeEnabled = False
         leftEnabled = False
+        AllowBots = True
         welcomeText = ""
         leftText = ""
         userEntity = await client.get_entity(event.user_id)
-        await AddUser(channelId,event.user_id,userEntity.first_name)
+        channelEntity = await client.get_entity(channelId)
         await loadSettings()
         if len(settings) != 0:
             allsettings = json.loads(settings)
@@ -579,26 +579,37 @@ async def chat_action_handler(event):
                             leftText = setting["LeftText"]
                     else:
                         leftEnabled = False
-
+                    if setting["AllowBots"] == True:
+                        AllowBots = True
+                    else:
+                        AllowBots = False
+            
         if (event.user_joined or event.user_added) and welcomeEnabled:
-            if "first_name" in welcomeText:
-                welcomeText = welcomeText.replace("first_name",str(userEntity.first_name))
-            if "user_name" in welcomeText:
-                welcomeText = welcomeText.replace("user_name",str(userEntity.username))
-            await event.reply(welcomeText)
-            header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
-            #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
-            url = "https://gfycat.com/gifs/search/welcome"
-            response = requests.get(url,headers=header)
-            soup = BeautifulSoup(response.content,"html.parser")
-            soup1 = soup.find_all("img")
-            if len(soup1) > 0:
-                imgsrc = random.choice(soup1)
-                try:
-                    await client.send_file(channelId,imgsrc['src'],force_document=False)
-                except Exception as e:
-                    print(e)
-
+            if userEntity.bot:
+                toUserId = userEntity.id
+                toUserName = userEntity.username
+                toUserFirstName = userEntity.first_name
+                await client.edit_permissions(channelEntity, userEntity, timedelta(minutes=0),view_messages=False)
+                await event.reply(toUserFirstName + ', you are banned!.')
+            else:
+                if "first_name" in welcomeText:
+                    welcomeText = welcomeText.replace("first_name",str(userEntity.first_name))
+                if "user_name" in welcomeText:
+                    welcomeText = welcomeText.replace("user_name",str(userEntity.username))
+                await event.reply(welcomeText)
+                header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
+                #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
+                url = "https://gfycat.com/gifs/search/welcome"
+                response = requests.get(url,headers=header)
+                soup = BeautifulSoup(response.content,"html.parser")
+                soup1 = soup.find_all("img")
+                if len(soup1) > 0:
+                    imgsrc = random.choice(soup1)
+                    try:
+                        await client.send_file(channelId,imgsrc['src'],force_document=False)
+                    except Exception as e:
+                        print(e)
+                await AddUser(channelId,event.user_id,userEntity.first_name)
         if (event.user_left or event.user_kicked) and leftEnabled:
             if "first_name" in leftText:
                 leftText = leftText.replace("first_name",str(userEntity.first_name))
@@ -620,6 +631,7 @@ async def chat_action_handler(event):
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
 
 @client.on(events.NewMessage(pattern=r'^\.langcodes$'))
 async def langcodes(event):
