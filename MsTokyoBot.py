@@ -1,3 +1,4 @@
+print("importing")
 import telethon
 from telethon import TelegramClient, events, sync
 from telethon import functions, types, custom
@@ -55,13 +56,15 @@ import joblib
 import re, string, unicodedata
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity,linear_kernel
-
+print("import done")
+print("training")
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
 trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
-
+print("training done")
+print("importing nudenet and pafy")
 from nudenet import NudeDetector
 detector = NudeDetector()
 from nudenet import NudeClassifierLite
@@ -69,7 +72,7 @@ from nudenet import NudeClassifierLite
 classifier_lite = NudeClassifierLite()
 import pafy
 import youtube_dl
-
+print("import nudenet and pafy done")
 
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
@@ -109,7 +112,9 @@ def createQueries():
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
+print("starting")
 createQueries()
+print("Started")
 
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
