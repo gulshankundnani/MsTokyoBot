@@ -114,6 +114,9 @@ def createQueries():
 
 createQueries()
 
+from googletrans import Translator
+translator = Translator()
+
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
 bot_token = '1318065263:AAF_brgyVqsq5GKVYczM6WaMrENdG8dJNLs'
@@ -520,21 +523,21 @@ async def my_event_handler(event):
                     else:
                         os.remove(path)
                 
-        if event.raw_text.lower() == '.translate' or '.translate' in event.raw_text.lower():
+        if event.raw_text.lower().startswith('.translate'):
                 try:
                     cmd = event.raw_text.lower()
                     to_lang = cmd.replace('.translate ','').split(' ')[0]
                     if to_lang is not None and '.translate' not in to_lang and to_lang in googletrans.LANGCODES.values():
                         term = cmd.replace('.translate ','').replace(to_lang,'',1)
                         if term is not None:
-                            translator = Translator()
+                            #translator = Translator()
                             translation = translator.translate(term,dest=to_lang)
                             await event.reply(translation.text)
                         else:
                             await event.reply('Provide data to translate!\n Example: .translate en gracias')
                     else:
                         term = cmd.replace('.translate ','').replace(to_lang + ' ','')
-                        translator = Translator()
+                        #translator = Translator()
                         translation = translator.translate(term,dest='en')
                         await event.reply(translation.text)
                 except Exception as e:
