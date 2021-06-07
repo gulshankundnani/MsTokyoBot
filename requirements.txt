@@ -31,7 +31,7 @@ google-auth
 google-auth-httplib2
 google-auth-oauthlib
 GoogleNews
-googletrans
+googletrans==3.1.0a0
 goslate
 grpcio
 gsheets
