@@ -1,4 +1,4 @@
-print("importing")
+print("Importing")
 import telethon
 from telethon import TelegramClient, events, sync
 from telethon import functions, types, custom
@@ -56,15 +56,7 @@ import joblib
 import re, string, unicodedata
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity,linear_kernel
-print("import done")
-print("training")
-from chatterbot import ChatBot
-from chatterbot.trainers import ChatterBotCorpusTrainer
-bot = ChatBot('MsTokyo')
-trainer = ChatterBotCorpusTrainer(bot)
-#trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
-print("training done")
-print("importing nudenet and pafy")
+
 from nudenet import NudeDetector
 detector = NudeDetector()
 from nudenet import NudeClassifierLite
@@ -72,8 +64,14 @@ from nudenet import NudeClassifierLite
 classifier_lite = NudeClassifierLite()
 import pafy
 import youtube_dl
-print("import nudenet and pafy done")
-
+print("Importing Done")
+print("Training")
+from chatterbot import ChatBot
+from chatterbot.trainers import ChatterBotCorpusTrainer
+bot = ChatBot('MsTokyo')
+trainer = ChatterBotCorpusTrainer(bot)
+trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
+print("Training Done")
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
 eventDict = {}
@@ -91,35 +89,35 @@ def createQueries():
         queries = []
         queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelDetails"("ChannelId" text,"ChannelTitle" text,"ChannelUsername" text,"AccessHash" text,"Active" boolean) WITH (OIDS = FALSE); ALTER TABLE "ChannelDetails" OWNER to postgres; """)
         queries.append(""" CREATE TABLE IF NOT EXISTS "ChannelSettings"("SettingsID" serial,"ChannelID" text,"Profanity" boolean,"Reputation" boolean,"AIChat" boolean,"Active" boolean,"AllowBots" boolean,"ImageFilter" boolean,"Rules" text,PRIMARY KEY ("SettingsID")) WITH (OIDS = FALSE); ALTER TABLE "ChannelSettings" OWNER to postgres; """)
-        queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text,"DOJ" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
+        queries.append(""" CREATE TABLE IF NOT EXISTS "UserDetails"("ChannelID_UserID" text,"ChannelID" text,"UserID" text,"TotalMessages" integer,"TotalReputation" integer,"FirstName" text,"DOJ" text)WITH (OIDS = FALSE); ALTER TABLE "UserDetails" OWNER to postgres; """)
         queries.append(""" CREATE TABLE IF NOT EXISTS "Messages"("ChannelID" text,"MessageID" text) WITH (OIDS = FALSE); ALTER TABLE "Messages" OWNER to postgres; """)
-        queries.append(""" -- FUNCTION: DecreaseReputationCount(text) -- DROP FUNCTION "DecreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "DecreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") - 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "DecreaseReputationCount"(text) OWNER TO postgres; """)
-        queries.append(""" -- FUNCTION: IncreaseReputationCount(text) -- DROP FUNCTION "IncreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "IncreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseReputationCount"(text) OWNER TO postgres; """)
-        queries.append(""" -- FUNCTION: IncreaseMessageCount(text) -- DROP FUNCTION "IncreaseMessageCount"(text); CREATE OR REPLACE FUNCTION "IncreaseMessageCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalMessages" = (SELECT "TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseMessageCount"(text) OWNER TO postgres; """)
-        queries.append(""" -- FUNCTION: public.InsertUser(text, text, integer, integer, text, text) -- DROP FUNCTION public."InsertUser"(text, text, integer, integer, text, text); CREATE OR REPLACE FUNCTION public."InsertUser"("ChannelIDVal" text, "UserIDVal" text, "TotalMessagesVal" integer, "TotalReputationVal" integer, "FirstNameVal" text, "ChannelIDUserIDVal" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName","ChannelID_UserID","DOJ") VALUES ("ChannelIDVal","UserIDVal","TotalMessagesVal","TotalReputationVal","FirstNameVal","ChannelIDUserIDVal",Now()) $BODY$; ALTER FUNCTION public."InsertUser"(text, text, integer, integer, text, text) OWNER TO postgres; """)
+        queries.append(""" CREATE OR REPLACE FUNCTION "DecreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") - 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "DecreaseReputationCount"(text) OWNER TO postgres; """)
+        queries.append(""" CREATE OR REPLACE FUNCTION "IncreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseReputationCount"(text) OWNER TO postgres; """)
+        queries.append(""" CREATE OR REPLACE FUNCTION "IncreaseMessageCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalMessages" = (SELECT "TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseMessageCount"(text) OWNER TO postgres; """)
+        queries.append(""" CREATE OR REPLACE FUNCTION "InsertUser"("ChannelIDVal" text, "UserIDVal" text, "TotalMessagesVal" integer, "TotalReputationVal" integer, "FirstNameVal" text, "ChannelIDUserIDVal" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName","ChannelID_UserID","DOJ") VALUES ("ChannelIDVal","UserIDVal","TotalMessagesVal","TotalReputationVal","FirstNameVal","ChannelIDUserIDVal",Now()) $BODY$; ALTER FUNCTION "InsertUser"(text, text, integer, integer, text, text) OWNER TO postgres; """)
         con = psycopg2.connect(database="mstokyodb", user="postgres", password="5miWLroSbKbkjFKO", host="mstokyodb-gb2gmf5iouhhn82v-svc.qovery.io", port="5432")
         cur = con.cursor()
         cur.execute(tables)
         tabData = cur.fetchall()
-        if tabData is None:        
+        if tabData is None or len(tabData):        
             for query in queries:
                 cur.execute(query)
                 con.commit()
                 time.sleep(1)
         print("Done")
+        con.commit()
+        time.sleep(1)
         cur.close()
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-print("starting")
 createQueries()
-print("Started")
 
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
 bot_token = '1318065263:AAF_brgyVqsq5GKVYczM6WaMrENdG8dJNLs'
-
+print("Started")
 cmds = ".startbot : Start the bot \n" 
 cmds = "++ : Increase reputation \n"
 cmds += "-- : Reduce reputation \n"
@@ -554,6 +552,7 @@ async def my_event_handler(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
+@client.on(events.ChatAction)
 async def chat_action_handler(event):
     try:
         channelId = event.chat.id
@@ -638,7 +637,6 @@ async def chat_action_handler(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-
 @client.on(events.NewMessage(pattern=r'^\.langcodes$'))
 async def langcodes(event):
     try:
@@ -654,6 +652,10 @@ async def langcodes(event):
 
 @client.on(events.NewMessage(pattern=r'^\++$'))
 async def increaseRep(event):
+    con = await getDbCon()
+    while con.closed == 1:
+        con = await getDbCon()
+
     replytomsgid = event.message.reply_to_msg_id
     if replytomsgid is not None:
         try:
@@ -693,6 +695,10 @@ async def increaseRep(event):
 
 @client.on(events.NewMessage(pattern=r'^-+$'))
 async def decreaseRep(event):
+    con = await getDbCon()
+    while con.closed == 1:
+        con = await getDbCon()
+
     replytomsgid = event.message.reply_to_msg_id
     if replytomsgid is not None:
         try:
