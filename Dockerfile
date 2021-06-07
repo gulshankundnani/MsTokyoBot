@@ -15,7 +15,6 @@ COPY MsTokyoBot.py .
 
 #install dependencies
 RUN pip install -r requirements.txt
-RUN pip install --upgrade googletrans
 
 # copy code itself from context to image
 COPY . .
