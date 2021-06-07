@@ -70,7 +70,7 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
+#trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
 print("Training Done")
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
