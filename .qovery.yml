@@ -1,0 +1,20 @@
+---
+application:
+  name: "mstokyobot"
+  project: "MsTokyo"
+  organization: "QoveryCommunity"
+  storage:
+  - name: "mstokyo"
+    size: "20"
+    type: "fast_ssd"
+    mount_point: "/mnt/mstokyo"
+databases:
+- type: "POSTGRESQL"
+  name: "mstokyodb"
+  version: "11"
+routers:
+- name: "main-mstokyobot"
+  routes:
+  - application_name: "mstokyobot"
+    paths:
+    - "/*"
