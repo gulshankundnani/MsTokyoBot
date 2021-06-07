@@ -62,7 +62,7 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-#trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
+trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
 print("training done")
 print("importing nudenet and pafy")
 from nudenet import NudeDetector
@@ -97,7 +97,7 @@ def createQueries():
         queries.append(""" -- FUNCTION: IncreaseReputationCount(text) -- DROP FUNCTION "IncreaseReputationCount"(text); CREATE OR REPLACE FUNCTION "IncreaseReputationCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalReputation" = (SELECT "TotalReputation" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseReputationCount"(text) OWNER TO postgres; """)
         queries.append(""" -- FUNCTION: IncreaseMessageCount(text) -- DROP FUNCTION "IncreaseMessageCount"(text); CREATE OR REPLACE FUNCTION "IncreaseMessageCount"("ChannelIDUserID" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ UPDATE "UserDetails" SET "TotalMessages" = (SELECT "TotalMessages" FROM "UserDetails" WHERE "ChannelID_UserID" = "ChannelIDUserID") + 1 WHERE "ChannelID_UserID" = "ChannelIDUserID" $BODY$; ALTER FUNCTION "IncreaseMessageCount"(text) OWNER TO postgres; """)
         queries.append(""" -- FUNCTION: public.InsertUser(text, text, integer, integer, text, text) -- DROP FUNCTION public."InsertUser"(text, text, integer, integer, text, text); CREATE OR REPLACE FUNCTION public."InsertUser"("ChannelIDVal" text, "UserIDVal" text, "TotalMessagesVal" integer, "TotalReputationVal" integer, "FirstNameVal" text, "ChannelIDUserIDVal" text) RETURNS void LANGUAGE 'sql' VOLATILE PARALLEL UNSAFE AS $BODY$ INSERT INTO "UserDetails" ("ChannelID","UserID","TotalMessages","TotalReputation","FirstName","ChannelID_UserID","DOJ") VALUES ("ChannelIDVal","UserIDVal","TotalMessagesVal","TotalReputationVal","FirstNameVal","ChannelIDUserIDVal",Now()) $BODY$; ALTER FUNCTION public."InsertUser"(text, text, integer, integer, text, text) OWNER TO postgres; """)
-        con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
+        con = psycopg2.connect(database="mstokyodb", user="postgres", password="5miWLroSbKbkjFKO", host="mstokyodb-gb2gmf5iouhhn82v-svc.qovery.io", port="5432")
         cur = con.cursor()
         cur.execute(tables)
         tabData = cur.fetchall()
