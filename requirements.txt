@@ -129,7 +129,6 @@ gothon
 libmagic
 luckydonald-utils
 ndg-httpsclient
-prismic
 pyOpenSSL
 pyTelegramBotAPI
 pytgbot
