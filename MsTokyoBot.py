@@ -62,7 +62,7 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
+#trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
 print("training done")
 print("importing nudenet and pafy")
 from nudenet import NudeDetector
