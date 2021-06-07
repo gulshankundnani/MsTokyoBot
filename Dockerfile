@@ -15,7 +15,7 @@ COPY MsTokyoBot.py .
 
 #install dependencies
 RUN pip install -r requirements.txt
-RUN pip install --upgrade telethon chatterbot
+RUN pip install --upgrade telethon
 
 # copy code itself from context to image
 COPY . .
