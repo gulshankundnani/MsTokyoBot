@@ -1794,6 +1794,7 @@ async def trainai(event):
     try:
         from threading import Thread
         t = Thread(target = trainTokyo) 
+        event.reply("training")
         t.start()
     except Exception as e:
         logging.exception("message")
