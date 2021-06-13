@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir --upgrade setuptools wheel
 COPY requirements.txt .
 #install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir --upgrade chatterbot==1.0.4
-RUN pip install --no-cache-dir --upgrade chatterbot==1.2.0
+RUN pip install --no-cache-dir chatterbot==1.0.4
+RUN pip install --no-cache-dir chatterbot-corpus==1.2.0
 COPY MsTokyoBot.py .
 # copy code itself from context to image
 COPY . .
