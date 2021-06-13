@@ -65,12 +65,15 @@ classifier_lite = NudeClassifierLite()
 import pafy
 import youtube_dl
 print("Importing Done")
-print("Training")
+
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-trainer.train(
+async def trainTokyo():
+    try:
+        print("Training")
+        trainer.train(
               "chatterbot.corpus.english.conversations",
               "chatterbot.corpus.english.food",
               "chatterbot.corpus.english.gossip",
@@ -85,13 +88,17 @@ trainer.train(
              ,"chatterbot.corpus.english.psychology"
              ,"chatterbot.corpus.english.science"
              ,"chatterbot.corpus.english.sports")
-print("Training Done")
+        print("Training Done")
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
 eventDict = {}
 eventDict[0] = [0]
 s = sched.scheduler(time.time, time.sleep)
-
+await trainTokyo()
 async def getDbCon():
     con = psycopg2.connect(database="mstokyodb", user="postgres", password="5miWLroSbKbkjFKO", host="mstokyodb-gb2gmf5iouhhn82v-svc.qovery.io", port="5432")
     return con
