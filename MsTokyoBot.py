@@ -70,7 +70,21 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-#trainer.train("chatterbot.corpus.english.greetings","chatterbot.corpus.english.conversations" )
+trainer.train("chatterbot.corpus.english.greetings",
+              "chatterbot.corpus.english.conversations",
+              "chatterbot.corpus.english.food",
+              "chatterbot.corpus.english.gossip",
+              "chatterbot.corpus.english.health",
+              "chatterbot.corpus.english.emotion"
+             ,"chatterbot.corpus.english.history"
+             ,"chatterbot.corpus.english.humor"
+             ,"chatterbot.corpus.english.literature"
+             ,"chatterbot.corpus.english.money"
+             ,"chatterbot.corpus.english.movies"
+             ,"chatterbot.corpus.english.politics"
+             ,"chatterbot.corpus.english.psychology"
+             ,"chatterbot.corpus.english.science"
+             ,"chatterbot.corpus.english.sports")
 print("Training Done")
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
@@ -114,9 +128,6 @@ def createQueries():
 
 createQueries()
 
-from googletrans import Translator
-translator = Translator()
-
 api_id = 1431692
 api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
 bot_token = '1318065263:AAF_brgyVqsq5GKVYczM6WaMrENdG8dJNLs'
@@ -155,12 +166,27 @@ cmds += ".left : use true/false to enable or disable welcome \n"
 cmds += ".lefttext : set left text eg: first_name/user_name left \n"
 cmds += ".allowbots : use true/false to enable or disable bots \n"
 cmds += ".imagefilter : use true/false to enable or disable image filter \n"
-cmds += ".art : Get art pics \n"
+#cmds += ".art : Get art pics \n"
 cmds += ".music : Get music \n"
 cmds += ".setrules : Set rules \n"
 cmds += ".rules : Get rules \n"
+cmds += ".ltypes : Get lock types \n"
 #cmds += ".clean : Clean the group. Make sure you have disabled messages before using the command. \n"
 cmds += ".cmd : Get list of commands \n"
+
+locktypes = "Lock Commands for chat\n\n"
+locktypes += ".lmsg : Lock Messages\n"
+locktypes += ".ulmsg : Unlock Messages\n"
+locktypes += ".lgif : Lock Gifs\n"
+locktypes += ".ulgif : Unlock Gifs\n"
+locktypes += ".lstk : Lock Stickers\n"
+locktypes += ".ulstk : Unlock Stickers\n"
+locktypes += ".lmed : Lock Media\n"
+locktypes += ".ulmed : Unlock Media\n"
+locktypes += ".lpoll : Lock Polls\n"
+locktypes += ".ulpoll : Unlock Polls\n"
+locktypes += ".lgame : Lock Games\n"
+locktypes += ".ulgame : Unlock Games\n"
 
 client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
 client.start()
@@ -170,6 +196,9 @@ isActive = True
 triviaDifficulty = ["easy","medium","hard"]
 triviaCategory = {'GK':'9','Books':'10','Film':'11','Music':'12','Theatre':'13','Tv':'14','Video_games':'15','Board_games':'16','Science_Nature':'17','Computer':'18','Math':'19','Myth':'20','Sports':'21','Geography':'22','History':'23' ,'Politics':'24' ,'Art':'25' ,'Celebrities':'26' ,'Animals':'27' ,'Vehicles':'28','Comic':'29','Gadgets':'30','Anime':'31','Cartoon':'32','Any':'any'}
 triviaUrl = "https://opentdb.com/api.php?amount=1&type=multiple"
+
+from googletrans import Translator
+translator = Translator()
 
 def image_to_byte_array(image:Image):
   imgByteArr = io.BytesIO()
@@ -558,6 +587,16 @@ async def my_event_handler(event):
 @client.on(events.ChatAction)
 async def chat_action_handler(event):
     try:
+        con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
+
+        select = 'SELECT "BanCount" FROM "GlobalBan" WHERE "UserID" = %s'
+        selectparam = (str(event.user_id),)
+        cur = con.cursor()
+        cur.execute(select,selectparam)
+        bancount = cur.fetchone()
+
         channelId = event.chat.id
         welcomeEnabled = False
         leftEnabled = False
@@ -593,12 +632,12 @@ async def chat_action_handler(event):
                         AllowBots = False
             
         if (event.user_joined or event.user_added) and welcomeEnabled:
-            if userEntity.bot:
+            if userEntity.bot or bancount >= 10:
                 toUserId = userEntity.id
                 toUserName = userEntity.username
                 toUserFirstName = userEntity.first_name
                 await client.edit_permissions(channelEntity, userEntity, timedelta(minutes=0),view_messages=False)
-                await event.reply(toUserFirstName + ', you are banned!.')
+                await event.reply(toUserFirstName + ', you are banned globally!.')
             else:
                 if "first_name" in welcomeText:
                     welcomeText = welcomeText.replace("first_name",str(userEntity.first_name))
@@ -1235,31 +1274,31 @@ async def addProfaneWord(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-@client.on(events.NewMessage(pattern=r'^\.art$'))
-async def getArt(event):
-    try:
-        fromUserId = event.from_id
-        channelId = event.message.to_id.channel_id
-        await event.reply("Wait ! Let me find art for you.")
-        header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
-        #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
-        url = "https://unsplash.com/s/photos/art?order_by=latest"
-        response = requests.get(url,headers=header)
-        soup = BeautifulSoup(response.content,"html.parser")
-        soup1 = soup.find_all("img")
-        if len(soup1) > 0:
-            imgsrc = random.choice(soup1)
-            image = Image.open(BytesIO(requests.get(imgsrc['src']).content))
-            image.save("art.png")
-            imgbyte = image_to_byte_array(image)
-            try:
-                await client.send_file(channelId,imgbyte,force_document=False,caption=imgsrc["alt"])
-            except Exception as e:
-                print(e)
-                await event.reply("Oh snap! Try again later.")
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+#@client.on(events.NewMessage(pattern=r'^\.art$'))
+#async def getArt(event):
+#    try:
+#        fromUserId = event.from_id
+#        channelId = event.message.to_id.channel_id
+#        await event.reply("Wait ! Let me find art for you.")
+#        header={'User-Agent':"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
+#        #url = "https://www.google.com/search?as_st=y&tbm=isch&hl=en-GB&as_q=art&as_epq=&as_oq=&as_eq=&cr=&as_sitesearch=&safe=images&tbs=isz:lt,islt:70mp,itp:photo,ift:png"
+#        url = "https://unsplash.com/s/photos/art?order_by=latest"
+#        response = requests.get(url,headers=header)
+#        soup = BeautifulSoup(response.content,"html.parser")
+#        soup1 = soup.find_all("img")
+#        if len(soup1) > 0:
+#            imgsrc = random.choice(soup1)
+#            image = Image.open(BytesIO(requests.get(imgsrc['src']).content))
+#            image.save("art.png")
+#            imgbyte = image_to_byte_array(image)
+#            try:
+#                await client.send_file(channelId,imgbyte,force_document=False,caption=imgsrc["alt"])
+#            except Exception as e:
+#                print(e)
+#                await event.reply("Oh snap! Try again later.")
+#    except Exception as e:
+#        logging.exception("message")
+#        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 @client.on(events.NewMessage(pattern=r'^\.trv$'))
 async def getTrv(event):
@@ -1690,6 +1729,55 @@ async def getRules(event):
                 else:
                     rules = "No Rules!"
         await event.reply(rules)
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.gb$',func=lambda e: e.is_reply))
+async def gban(event):
+    try:
+        con = await getDbCon()
+        while con.closed == 1:
+            con = await getDbCon()
+
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            replytomsgid = event.message.reply_to_msg_id
+            if replytomsgid is not None:
+                msgSearch = await client.get_messages(channelId, ids=replytomsgid)
+                toUserEntity = await client.get_entity(msgSearch.from_id)
+                toUserId = toUserEntity.id
+                toUserName = toUserEntity.username
+                toUserFirstName = toUserEntity.first_name
+                if isadmin or iscreator:
+                    await client.edit_permissions(channelEntity, toUserEntity, timedelta(minutes=0),view_messages=False)
+                    await event.reply(toUserFirstName + ', you are banned!.\nReason: Global Ban across MSTokyo groups.')
+                    cur = con.cursor()
+                    cur.callproc('"IncreaseBanCount"', [str(toUserId),])
+                    con.commit()
+
+    except Exception as e:
+        await event.reply("Can't delete older messages.")
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+@client.on(events.NewMessage(pattern=r'^\.ltypes$'))
+async def ltypes(event):
+    try:
+        fromUserId = event.from_id
+        channelId = event.message.to_id.channel_id
+        channelEntity = await client.get_entity(channelId)
+        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+        if isadmin or iscreator:
+            await event.reply("" + locktypes)
+
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
