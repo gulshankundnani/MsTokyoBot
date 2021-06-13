@@ -70,7 +70,7 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-trainer.train("chatterbot.corpus.english.greetings",
+trainer.train(
               "chatterbot.corpus.english.conversations",
               "chatterbot.corpus.english.food",
               "chatterbot.corpus.english.gossip",
