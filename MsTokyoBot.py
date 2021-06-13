@@ -70,7 +70,7 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-async def trainTokyo():
+def trainTokyo():
     try:
         print("Training")
         trainer.train(
@@ -1792,7 +1792,9 @@ async def ltypes(event):
 @client.on(events.NewMessage(pattern=r'^\.trainai$'))
 async def trainai(event):
     try:
-        await trainTokyo()
+        from threading import Thread
+        t = Thread(target = trainTokyo) 
+        t.start()
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
