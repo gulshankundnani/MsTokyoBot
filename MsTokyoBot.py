@@ -70,7 +70,7 @@ from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 bot = ChatBot('MsTokyo')
 trainer = ChatterBotCorpusTrainer(bot)
-def trainTokyo():
+async def trainTokyo():
     try:
         print("Training")
         trainer.train(
@@ -101,7 +101,7 @@ s = sched.scheduler(time.time, time.sleep)
 async def getDbCon():
     con = psycopg2.connect(database="mstokyodb", user="postgres", password="5miWLroSbKbkjFKO", host="mstokyodb-gb2gmf5iouhhn82v-svc.qovery.io", port="5432")
     return con
-trainTokyo()
+
 def createQueries():
     try:      
         print("Started")
@@ -1787,6 +1787,17 @@ async def ltypes(event):
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
+@client.on(events.NewMessage(pattern=r'^\.trainai$'))
+async def trainai(event):
+    try:
+        await trainTokyo()
+    except Exception as e:
+        logging.exception("message")
+        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
 
 client.run_until_disconnected()
 
