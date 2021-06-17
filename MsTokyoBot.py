@@ -56,7 +56,8 @@ import joblib
 import re, string, unicodedata
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity,linear_kernel
-
+from chatterbot import ChatBot
+from chatterbot.trainers import ChatterBotCorpusTrainer
 from nudenet import NudeDetector
 detector = NudeDetector()
 from nudenet import NudeClassifierLite
@@ -65,33 +66,6 @@ classifier_lite = NudeClassifierLite()
 import pafy
 import youtube_dl
 print("Importing Done")
-
-from chatterbot import ChatBot
-from chatterbot.trainers import ChatterBotCorpusTrainer
-bot = ChatBot('MsTokyo')
-trainer = ChatterBotCorpusTrainer(bot)
-def trainTokyo():
-    try:
-        print("Training")
-        trainer.train(
-              "chatterbot.corpus.english.conversations",
-              "chatterbot.corpus.english.food",
-              "chatterbot.corpus.english.gossip",
-              "chatterbot.corpus.english.health",
-              "chatterbot.corpus.english.emotion"
-             ,"chatterbot.corpus.english.history"
-             ,"chatterbot.corpus.english.humor"
-             ,"chatterbot.corpus.english.literature"
-             ,"chatterbot.corpus.english.money"
-             ,"chatterbot.corpus.english.movies"
-             ,"chatterbot.corpus.english.politics"
-             ,"chatterbot.corpus.english.psychology"
-             ,"chatterbot.corpus.english.science"
-             ,"chatterbot.corpus.english.sports")
-        print("Training Done")
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
@@ -205,6 +179,26 @@ triviaUrl = "https://opentdb.com/api.php?amount=1&type=multiple"
 
 from googletrans import Translator
 translator = Translator()
+
+bot = ChatBot('MsTokyo')
+trainer = ChatterBotCorpusTrainer(bot)
+print("Training")
+trainer.train(
+              "chatterbot.corpus.english.conversations",
+              "chatterbot.corpus.english.food",
+              "chatterbot.corpus.english.gossip",
+              "chatterbot.corpus.english.health",
+              "chatterbot.corpus.english.emotion"
+             ,"chatterbot.corpus.english.history"
+             ,"chatterbot.corpus.english.humor"
+             ,"chatterbot.corpus.english.literature"
+             ,"chatterbot.corpus.english.money"
+             ,"chatterbot.corpus.english.movies"
+             ,"chatterbot.corpus.english.politics"
+             ,"chatterbot.corpus.english.psychology"
+             ,"chatterbot.corpus.english.science"
+             ,"chatterbot.corpus.english.sports")
+print("Training Done")
 
 def image_to_byte_array(image:Image):
   imgByteArr = io.BytesIO()
@@ -1787,20 +1781,6 @@ async def ltypes(event):
     except Exception as e:
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-
-
-@client.on(events.NewMessage(pattern=r'^\.trainai$'))
-async def trainai(event):
-    try:
-        from threading import Thread
-        t = Thread(target = trainTokyo) 
-        event.reply("training")
-        t.start()
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-
-
 
 client.run_until_disconnected()
 
