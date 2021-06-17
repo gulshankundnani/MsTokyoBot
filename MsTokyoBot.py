@@ -179,11 +179,11 @@ triviaUrl = "https://opentdb.com/api.php?amount=1&type=multiple"
 
 from googletrans import Translator
 translator = Translator()
-
-bot = ChatBot('MsTokyo')
-trainer = ChatterBotCorpusTrainer(bot)
-print("Training")
-trainer.train(
+try:
+    bot = ChatBot('MsTokyo')
+    bot.set_trainer(ChatterBotCorpusTrainer)
+    print("Training")
+    bot.train(
               "chatterbot.corpus.english.conversations",
               "chatterbot.corpus.english.food",
               "chatterbot.corpus.english.gossip",
@@ -198,8 +198,10 @@ trainer.train(
              ,"chatterbot.corpus.english.psychology"
              ,"chatterbot.corpus.english.science"
              ,"chatterbot.corpus.english.sports")
-print("Training Done")
-
+    print("Training Done")
+except Exception as e:
+    logging.exception("message")
+    print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 def image_to_byte_array(image:Image):
   imgByteArr = io.BytesIO()
   image.save(imgByteArr, format=image.format)
