@@ -133,10 +133,8 @@ pyOpenSSL
 pyTelegramBotAPI
 pytgbot
 python-magic
-aiml==0.8.6
 better-profanity
 psycopg2
-python-aiml==0.9.3
 pandas
 nltk
 numpy
