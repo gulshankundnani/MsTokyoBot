@@ -8,15 +8,15 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN git clone https://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:x-oauth-basic@github.com/gulshankundnani/MsTokyoBot.git
 # run this before copying requirements for cache efficiency
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir --upgrade setuptools wheel
+RUN pip install --no-cache-dir --upgrade setuptools wheel chatterbot-corpus
 # Adding requirements file to current directory
 # just this file first to cache the pip install step when code changes
-COPY requirements.txt $PATH
+COPY requirements.txt .
 #install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-COPY MsTokyoBot.py $PATH
+COPY MsTokyoBot.py .
 # copy code itself from context to image
-COPY . $PATH
+COPY . .
 
 
 # run from working directory, and separate args in the json syntax
