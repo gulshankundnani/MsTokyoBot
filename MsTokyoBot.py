@@ -56,8 +56,7 @@ import joblib
 import re, string, unicodedata
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity,linear_kernel
-from chatterbot import ChatBot
-from chatterbot.trainers import ChatterBotCorpusTrainer
+
 from nudenet import NudeDetector
 detector = NudeDetector()
 from nudenet import NudeClassifierLite
@@ -66,12 +65,33 @@ classifier_lite = NudeClassifierLite()
 import pafy
 import youtube_dl
 print("Importing Done")
-
+print("Training")
+from chatterbot import ChatBot
+from chatterbot.trainers import ChatterBotCorpusTrainer
+bot = ChatBot('MsTokyo')
+trainer = ChatterBotCorpusTrainer(bot)
+trainer.train("chatterbot.corpus.english.greetings",
+              "chatterbot.corpus.english.conversations",
+              "chatterbot.corpus.english.food",
+              "chatterbot.corpus.english.gossip",
+              "chatterbot.corpus.english.health",
+              "chatterbot.corpus.english.emotion"
+             ,"chatterbot.corpus.english.history"
+             ,"chatterbot.corpus.english.humor"
+             ,"chatterbot.corpus.english.literature"
+             ,"chatterbot.corpus.english.money"
+             ,"chatterbot.corpus.english.movies"
+             ,"chatterbot.corpus.english.politics"
+             ,"chatterbot.corpus.english.psychology"
+             ,"chatterbot.corpus.english.science"
+             ,"chatterbot.corpus.english.sports")
+print("Training Done")
 #con = psycopg2.connect(database="mstokyodb", user="postgres", password="O1EDxoMuzIAYzDtP", host="mstokyodb-ojncaublf6dgubfc-svc.qovery.io", port="5432")
 global con
 eventDict = {}
 eventDict[0] = [0]
 s = sched.scheduler(time.time, time.sleep)
+
 async def getDbCon():
     con = psycopg2.connect(database="mstokyodb", user="postgres", password="5miWLroSbKbkjFKO", host="mstokyodb-gb2gmf5iouhhn82v-svc.qovery.io", port="5432")
     return con
@@ -123,6 +143,7 @@ cmds += ".langcodes : Get language codes \n"
 cmds += ".m : Mute user \n"
 cmds += ".um : Unmute user \n"
 cmds += ".b : Ban user \n"
+cmds += ".ub : Ban user \n"
 cmds += ".news : Get news \n"
 cmds += ".what : Get meaning \n"
 cmds += ".joke : Get a joke \n"
@@ -137,7 +158,7 @@ cmds += ".ping : Get bot status \n"
 cmds += ".trv : Get trivia game \n"
 cmds += ".reputation : use true/false to enable or disable reputation  \n"
 cmds += ".profanity : use true/false to enable or disable profanity check  \n"
-cmds += ".profaneadd : Add banned or profanity word eg: profaneadd word \n"
+#cmds += ".profaneadd : Add banned or profanity word eg: profaneadd word \n"
 #cmds += ".profanedel : Add banned or profanity word eg: profanedel word \n"
 #cmds += ".trvcat : Get trivia categories \n"
 cmds += ".welcome : use true/false to enable or disable welcome \n"
@@ -151,7 +172,7 @@ cmds += ".music : Get music \n"
 cmds += ".setrules : Set rules \n"
 cmds += ".rules : Get rules \n"
 cmds += ".ltypes : Get lock types \n"
-#cmds += ".clean : Clean the group. Make sure you have disabled messages before using the command. \n"
+cmds += ".clean : Clean the group. Make sure you have disabled messages before using the command. \n"
 cmds += ".cmd : Get list of commands \n"
 
 locktypes = "Lock Commands for chat\n\n"
@@ -179,29 +200,7 @@ triviaUrl = "https://opentdb.com/api.php?amount=1&type=multiple"
 
 from googletrans import Translator
 translator = Translator()
-try:
-    bot = ChatBot('MsTokyo')
-    bot.set_trainer(ChatterBotCorpusTrainer)
-    print("Training")
-    bot.train(
-              "chatterbot.corpus.english.conversations",
-              "chatterbot.corpus.english.food",
-              "chatterbot.corpus.english.gossip",
-              "chatterbot.corpus.english.health",
-              "chatterbot.corpus.english.emotion"
-             ,"chatterbot.corpus.english.history"
-             ,"chatterbot.corpus.english.humor"
-             ,"chatterbot.corpus.english.literature"
-             ,"chatterbot.corpus.english.money"
-             ,"chatterbot.corpus.english.movies"
-             ,"chatterbot.corpus.english.politics"
-             ,"chatterbot.corpus.english.psychology"
-             ,"chatterbot.corpus.english.science"
-             ,"chatterbot.corpus.english.sports")
-    print("Training Done")
-except Exception as e:
-    logging.exception("message")
-    print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
 def image_to_byte_array(image:Image):
   imgByteArr = io.BytesIO()
   image.save(imgByteArr, format=image.format)
