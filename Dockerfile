@@ -1,10 +1,6 @@
 
 FROM python:3.8.2
 
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
 RUN git clone https://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:x-oauth-basic@github.com/gulshankundnani/MsTokyoBot.git
 # run this before copying requirements for cache efficiency
 RUN pip install --no-cache-dir --upgrade pip
