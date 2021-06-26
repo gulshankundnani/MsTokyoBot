@@ -48,7 +48,6 @@ hyperframe
 identify
 idna
 install
-instapy
 itsdangerous
 jdcal
 Jinja2
