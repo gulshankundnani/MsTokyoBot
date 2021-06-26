@@ -8,7 +8,6 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN git clone https://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:x-oauth-basic@github.com/gulshankundnani/MsTokyoBot.git
 # run this before copying requirements for cache efficiency
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir --upgrade setuptools wheel
 # Adding requirements file to current directory
 # just this file first to cache the pip install step when code changes
