@@ -90,7 +90,6 @@ print("Training Done")
 global con
 eventDict = {}
 eventDict[0] = [0]
-s = sched.scheduler(time.time, time.sleep)
 
 async def getDbCon():
     con = psycopg2.connect(database="mstokyodb", user="postgres", password="5miWLroSbKbkjFKO", host="mstokyodb-gb2gmf5iouhhn82v-svc.qovery.io", port="5432")
