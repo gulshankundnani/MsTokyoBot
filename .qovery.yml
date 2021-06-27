@@ -5,7 +5,7 @@ application:
   organization: "QoveryCommunity"
   storage:
   - name: "mstokyo"
-    size: "20"
+    size: "30"
     type: "fast_ssd"
     mount_point: "/mnt/mstokyo"
 databases:
