@@ -90,6 +90,7 @@ print("Training Done")
 global con
 eventDict = {}
 eventDict[0] = [0]
+s = sched.scheduler(time.time, time.sleep)
 
 async def getDbCon():
     con = psycopg2.connect(database="mstokyodb", user="postgres", password="5miWLroSbKbkjFKO", host="mstokyodb-gb2gmf5iouhhn82v-svc.qovery.io", port="5432")
@@ -579,6 +580,54 @@ async def my_event_handler(event):
                 await event.reply('I dont know what to reply!')
             else:
                 await event.reply(responsedata.text)
+
+        if event.raw_text.lower().startswith('.setrules'):
+            try:
+                fromUserId = event.from_id
+                channelId = event.message.to_id.channel_id
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin or iscreator:
+                    text = event.raw_text.lower().replace(".setrules","",1)
+                    if text is not None:
+                        await UpdateClientSettings(channelId,"Rules",text)
+                        await event.reply('Settings Updated!')
+            except Exception as e:
+                logging.exception("message")
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+        if event.raw_text.lower().startswith('.welcometext'):
+            try:
+                fromUserId = event.from_id
+                channelId = event.message.to_id.channel_id
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin or iscreator:    
+                    text = event.raw_text.lower().replace(".welcometext","",1)
+                    if text is not None:
+                        await UpdateClientSettings(channelId,"WelcomeText",text)
+                        await event.reply('Settings Updated!')
+            except Exception as e:
+                logging.exception("message")
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+        if event.raw_text.lower().startswith('.lefttext'):
+            try:
+                fromUserId = event.from_id
+                channelId = event.message.to_id.channel_id
+                participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+                isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+                iscreator = (type(participant.participant) == ChannelParticipantCreator)
+                if isadmin or iscreator:
+                    text = event.raw_text.lower().replace(".lefttext","",1)
+                    if text is not None:
+                        await UpdateClientSettings(channelId,"LeftText",text)
+                        await event.reply('Settings Updated!')
+            except Exception as e:
+                logging.exception("message")
+                print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
     except Exception as e:
         logging.exception("message")
@@ -1222,41 +1271,41 @@ async def updateLeftSettings(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-@client.on(events.NewMessage(pattern=r'^\.welcometext (.*)?$'))
-async def updateWelcomeText(event):
-    try:
-        fromUserId = event.from_id
-        channelId = event.message.to_id.channel_id
-        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
-        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
-        iscreator = (type(participant.participant) == ChannelParticipantCreator)
-        if isadmin or iscreator:
+#@client.on(events.NewMessage(pattern=r'^\.welcometext (.*)?$'))
+#async def updateWelcomeText(event):
+#    try:
+#        fromUserId = event.from_id
+#        channelId = event.message.to_id.channel_id
+#        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+#        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+#        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+#        if isadmin or iscreator:
             
-            text = event.raw_text.lower().replace(".welcometext","",1)
-            if text is not None:
-                await UpdateClientSettings(channelId,"WelcomeText",text)
-                await event.reply('Settings Updated!')
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+#            text = event.raw_text.lower().replace(".welcometext","",1)
+#            if text is not None:
+#                await UpdateClientSettings(channelId,"WelcomeText",text)
+#                await event.reply('Settings Updated!')
+#    except Exception as e:
+#        logging.exception("message")
+#        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
-@client.on(events.NewMessage(pattern=r'^\.lefttext (.*)?$'))
-async def updateLeftText(event):
-    try:
-        fromUserId = event.from_id
-        channelId = event.message.to_id.channel_id
-        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
-        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
-        iscreator = (type(participant.participant) == ChannelParticipantCreator)
-        if isadmin or iscreator:
+#@client.on(events.NewMessage(pattern=r'^\.lefttext (.*)?$'))
+#async def updateLeftText(event):
+#    try:
+#        fromUserId = event.from_id
+#        channelId = event.message.to_id.channel_id
+#        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+#        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+#        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+#        if isadmin or iscreator:
             
-            text = event.raw_text.lower().replace(".lefttext","",1)
-            if text is not None:
-                await UpdateClientSettings(channelId,"LeftText",text)
-                await event.reply('Settings Updated!')
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+#            text = event.raw_text.lower().replace(".lefttext","",1)
+#            if text is not None:
+#                await UpdateClientSettings(channelId,"LeftText",text)
+#                await event.reply('Settings Updated!')
+#    except Exception as e:
+#        logging.exception("message")
+#        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
         
 @client.on(events.NewMessage(pattern=r'^\.profaneadd \w+$'))
 async def addProfaneWord(event):
@@ -1696,22 +1745,22 @@ async def sendmusic(event):
         logging.exception("message")
         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
-@client.on(events.NewMessage(pattern=r'^\.setrules (.*?)$'))
-async def setRules(event):
-    try:
-        fromUserId = event.from_id
-        channelId = event.message.to_id.channel_id
-        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
-        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
-        iscreator = (type(participant.participant) == ChannelParticipantCreator)
-        if isadmin or iscreator:
-            text = event.raw_text.lower().replace(".setrules","",1)
-            if text is not None:
-                await UpdateClientSettings(channelId,"Rules",text)
-                await event.reply('Settings Updated!')
-    except Exception as e:
-        logging.exception("message")
-        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+#@client.on(events.NewMessage(pattern=r'^\.setrules'))
+#async def setRules(event):
+#    try:
+#        fromUserId = event.from_id
+#        channelId = event.message.to_id.channel_id
+#        participant = await client(GetParticipantRequest(channel=event.original_update.message.to_id.channel_id,user_id=event.original_update.message.from_id))
+#        isadmin = (type(participant.participant) == ChannelParticipantAdmin)
+#        iscreator = (type(participant.participant) == ChannelParticipantCreator)
+#        if isadmin or iscreator:
+#            text = event.raw_text.lower().replace(".setrules","",1)
+#            if text is not None:
+#                await UpdateClientSettings(channelId,"Rules",text)
+#                await event.reply('Settings Updated!')
+#    except Exception as e:
+#        logging.exception("message")
+#        print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 @client.on(events.NewMessage(pattern=r'^\.rules$'))
 async def getRules(event):
