@@ -14,5 +14,5 @@ COPY MsTokyoBot.py .
 # copy code itself from context to image
 COPY . .
 # run from working directory, and separate args in the json syntax
-EXPOSE 3000
+EXPOSE 3000 777
 CMD ["python", "MsTokyoBot.py"]
