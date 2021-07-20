@@ -1,7 +1,8 @@
 
 
 FROM python:3.8.2
-RUN -p 3000
+EXPOSE 3000
+docker run -p 3000
 RUN git clone https://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:x-oauth-basic@github.com/gulshankundnani/MsTokyoBot.git
 # run this before copying requirements for cache efficiency
 RUN pip install --no-cache-dir --upgrade pip
