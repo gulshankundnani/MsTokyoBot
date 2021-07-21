@@ -11,6 +11,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY MsTokyoBot.py .
 # copy code itself from context to image
 COPY . .
+docker-compose run --service-ports web python MsTokyoBot.py shell
 # run from working directory, and separate args in the json syntax
-EXPOSE 443/tcp
 CMD ["python", "MsTokyoBot.py"]
