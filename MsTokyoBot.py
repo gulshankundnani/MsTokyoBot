@@ -189,7 +189,11 @@ locktypes += ".ulpoll : Unlock Polls\n"
 locktypes += ".lgame : Lock Games\n"
 locktypes += ".ulgame : Unlock Games\n"
 
-client = TelegramClient('MsTokyoBot', api_id, api_hash).start(bot_token=bot_token)
+host = 8.8.8.8  # a valid host
+port = 443  # a valid port
+proxy = (socks.SOCKS5, host, port)
+
+client = TelegramClient('MsTokyoBot', api_id, api_hash,proxy).start(bot_token=bot_token)
 client.start()
 settings = []
 
