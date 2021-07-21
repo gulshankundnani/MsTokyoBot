@@ -13,4 +13,3 @@ COPY MsTokyoBot.py .
 COPY . .
 # run from working directory, and separate args in the json syntax
 CMD ["python", "MsTokyoBot.py"]
-EXPOSE 443
