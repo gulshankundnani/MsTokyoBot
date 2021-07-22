@@ -12,4 +12,5 @@ COPY MsTokyoBot.py .
 # copy code itself from context to image
 COPY . .
 # run from working directory, and separate args in the json syntax
-CMD ["python", "MsTokyoBot.py"]
+EXPOSE 8080:443
+CMD ["python", "MsTokyoBot.py", port="443"]
