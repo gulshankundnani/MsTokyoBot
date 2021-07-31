@@ -137,7 +137,6 @@ pypiwin32==223
 pyTelegramBotAPI==3.7.7
 pytgbot==5.1
 python-magic==0.4.22
-pywin32==300
 teleflask==1.0.1
 aiml==0.8.6
 asyncio==3.4.3
