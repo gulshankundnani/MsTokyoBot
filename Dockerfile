@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir --upgrade setuptools wheel
 # just this file first to cache the pip install step when code changes
 ADD requirements.txt .
 #install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 ADD MsTokyoBot.py .
 # copy code itself from context to image
 ADD . .
