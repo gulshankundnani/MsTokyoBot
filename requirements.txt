@@ -133,7 +133,7 @@ pyTelegramBotAPI
 pytgbot
 python-magic
 better-profanity
-psycopg2
+psycopg2==2.9.1
 pandas
 nltk
 numpy
