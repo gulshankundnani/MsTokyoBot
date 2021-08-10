@@ -140,9 +140,7 @@ teleflask
 aiml
 asyncio
 better-profanity
-psycopg2
-python-aiml
-blis
+psycopg2-binary
 catalogue
 ChatterBot==1.0.4
 chatterbot-corpus
