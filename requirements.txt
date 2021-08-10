@@ -137,8 +137,6 @@ pyTelegramBotAPI
 pytgbot
 python-magic
 teleflask
-aiml
-asyncio
 better-profanity
 psycopg2-binary
 catalogue
