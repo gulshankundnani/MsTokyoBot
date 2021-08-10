@@ -144,7 +144,7 @@ psycopg2
 python-aiml
 blis
 catalogue
-ChatterBot
+ChatterBot==1.0.4
 chatterbot-corpus
 cycler
 cymem
