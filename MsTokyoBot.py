@@ -93,7 +93,7 @@ eventDict[0] = [0]
 s = sched.scheduler(time.time, time.sleep)
 
 async def getDbCon():
-    con = psycopg2.connect(database="mstokyodb", user="postgres", password="NBrV94t6fOJ0qCPP", host="zd845d21b-postgresql.qovery.io", port="5432")
+    con = YourConnection
     return con
 
 def createQueries():
@@ -128,9 +128,9 @@ def createQueries():
 
 createQueries()
 
-api_id = 1431692
-api_hash = '4a91977a702732b8ba14fb92af6b1c2f'
-bot_token = '1318065263:AAF_brgyVqsq5GKVYczM6WaMrENdG8dJNLs'
+api_id = ApiID
+api_hash = APIHash
+bot_token = Token
 print("Started")
 cmds = ".startbot : Start the bot \n" 
 cmds = "++ : Increase reputation \n"
